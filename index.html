@@ -60,12 +60,17 @@
 	        
 				<li><a href="/categories">分类</a></li>
 	        
+				<li><a href="/archives/index.html">归档</a></li>
+	        
 				<li><a href="/tags/%E9%9A%8F%E7%AC%94/">随笔</a></li>
 	        
 			</ul>
 		</nav>
 		<nav>
     		总文章数 3
+		</nav>
+		<nav>
+			总字数 <span class="post-count">197</span>
 		</nav>
 		<nav class="header-smart-menu">
     		
@@ -95,6 +100,8 @@
 		        
 			</div>
 		</nav>
+
+
 	</header>		
 </div>
 
@@ -125,6 +132,8 @@
 			
 				
 			
+				
+			
 			
 			
 			<nav class="header-nav">
@@ -145,11 +154,13 @@
 				<ul style="width: 70%">
 				
 				
-					<li style="width: 33.333333333333336%"><a href="/">主页</a></li>
+					<li style="width: 25%"><a href="/">主页</a></li>
 		        
-					<li style="width: 33.333333333333336%"><a href="/categories">分类</a></li>
+					<li style="width: 25%"><a href="/categories">分类</a></li>
 		        
-					<li style="width: 33.333333333333336%"><a href="/tags/%E9%9A%8F%E7%AC%94/">随笔</a></li>
+					<li style="width: 25%"><a href="/archives/index.html">归档</a></li>
+		        
+					<li style="width: 25%"><a href="/tags/%E9%9A%8F%E7%AC%94/">随笔</a></li>
 		        
 				</ul>
 			</nav>
@@ -183,6 +194,10 @@
 </a>
         
       </header>
+      <div align="center" class="post-count">
+      字数：2字 | 预计阅读时长：1分钟
+      </div>
+
     
     <div class="article-entry" itemprop="articleBody">
       
@@ -246,10 +261,17 @@
 </a>
         
       </header>
+      <div align="center" class="post-count">
+      字数：122字 | 预计阅读时长：1分钟
+      </div>
+
     
     <div class="article-entry" itemprop="articleBody">
       
-        
+        <h5 id="测试代码显示"><a href="#测试代码显示" class="headerlink" title="测试代码显示"></a>测试代码显示</h5><figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#<span class="meta-keyword">include</span><span class="meta-string">&lt;iostream&gt;</span></span></span><br><span class="line"><span class="keyword">using</span> <span class="keyword">namespace</span> <span class="built_in">std</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">long</span> n,m,tmp,num;</span><br><span class="line"><span class="keyword">long</span> ans;</span><br><span class="line"></span><br><span class="line"><span class="comment">//const int maxn = 5e8+10;</span></span><br><span class="line"><span class="comment">//bool vis[maxn]=&#123;0&#125;;</span></span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">f</span><span class="params">(<span class="keyword">long</span> tmp,<span class="keyword">long</span> num)</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line"><span class="comment">//	if(vis[tmp]==true)return;</span></span><br><span class="line"><span class="comment">//	vis[tmp] = 1;</span></span><br><span class="line">	<span class="keyword">if</span>(tmp == m)</span><br><span class="line">	&#123;</span><br><span class="line">		ans = num;</span><br><span class="line">		<span class="comment">//cout&lt;&lt;"???"&lt;&lt;ans&lt;&lt;endl;</span></span><br><span class="line">		<span class="keyword">return</span>;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">else</span> <span class="keyword">if</span>(tmp &gt; m )<span class="keyword">return</span>;</span><br><span class="line">	f(tmp * <span class="number">2</span>, num + <span class="number">1</span>);</span><br><span class="line">	f(tmp * <span class="number">3</span>, num + <span class="number">1</span>);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">main</span><span class="params">()</span></span></span><br><span class="line"><span class="function"></span>&#123;</span><br><span class="line">	<span class="built_in">cin</span> &gt;&gt; n &gt;&gt; m;</span><br><span class="line">	num = <span class="number">0</span>;</span><br><span class="line">	ans = <span class="number">-1</span>;</span><br><span class="line">	<span class="keyword">if</span>(n == m)</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="built_in">cout</span>&lt;&lt;<span class="number">0</span>;</span><br><span class="line">		<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">	&#125; </span><br><span class="line">	f(n,<span class="number">0</span>);</span><br><span class="line">	<span class="built_in">cout</span>&lt;&lt;ans;</span><br><span class="line">	</span><br><span class="line">	<span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<hr>
+<h5 id="测试目录显示"><a href="#测试目录显示" class="headerlink" title="测试目录显示"></a>测试目录显示</h5>
       
 
       
@@ -257,7 +279,33 @@
     <div class="article-info article-info-index">
       
       
+	<div class="article-tag tagcloud">
+		<i class="icon-price-tags icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="javascript:void(0)" class="js-tag article-tag-list-link color3">杂项</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
       
+	<div class="article-category tagcloud">
+		<i class="icon-book icon"></i>
+		<ul class="article-tag-list">
+			 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/杂项//" class="article-tag-list-link color3">杂项</a>
+        		</li>
+      		 
+        		<li class="article-tag-list-item">
+        			<a href="/categories/杂项/博客搭建//" class="article-tag-list-link color5">博客搭建</a>
+        		</li>
+      		
+		</ul>
+	</div>
+
 
       
         <p class="article-more-link">
@@ -308,6 +356,10 @@
 </a>
         
       </header>
+      <div align="center" class="post-count">
+      字数：73字 | 预计阅读时长：1分钟
+      </div>
+
     
     <div class="article-entry" itemprop="articleBody">
       
@@ -478,6 +530,10 @@ MathJax.Hub.Queue(function() {
             <input type="checkbox" q-on="click:toggleTag(e)" q-attr="checked:showTags">
           </label>
           <ul class="article-tag-list" q-show="showTags">
+             
+              <li class="article-tag-list-item">
+                <a href="javascript:void(0)" class="js-tag color3">杂项</a>
+              </li>
             
             <div class="clearfix"></div>
           </ul>
