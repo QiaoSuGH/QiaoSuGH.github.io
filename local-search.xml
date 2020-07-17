@@ -17,33 +17,6 @@
   
   
   <entry>
-    <title>My First Blog</title>
-    <link href="/2020/04/24/My-First-Blog/"/>
-    <url>/2020/04/24/My-First-Blog/</url>
-    
-    <content type="html"><![CDATA[<h5 id="测试代码显示"><a href="#测试代码显示" class="headerlink" title="测试代码显示"></a>测试代码显示</h5><div class="hljs"><pre><code class="hljs c++"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span><span class="hljs-meta-string">&lt;iostream&gt;</span></span><span class="hljs-keyword">using</span> <span class="hljs-keyword">namespace</span> <span class="hljs-built_in">std</span>;<span class="hljs-keyword">long</span> n,m,tmp,num;<span class="hljs-keyword">long</span> ans;<span class="hljs-comment">//const int maxn = 5e8+10;</span><span class="hljs-comment">//bool vis[maxn]=&#123;0&#125;;</span><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">f</span><span class="hljs-params">(<span class="hljs-keyword">long</span> tmp,<span class="hljs-keyword">long</span> num)</span></span><span class="hljs-function"></span>&#123;<span class="hljs-comment">//if(vis[tmp]==true)return;</span><span class="hljs-comment">//vis[tmp] = 1;</span><span class="hljs-keyword">if</span>(tmp == m)&#123;ans = num;<span class="hljs-comment">//cout&lt;&lt;"???"&lt;&lt;ans&lt;&lt;endl;</span><span class="hljs-keyword">return</span>;&#125;<span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(tmp &gt; m )<span class="hljs-keyword">return</span>;f(tmp * <span class="hljs-number">2</span>, num + <span class="hljs-number">1</span>);f(tmp * <span class="hljs-number">3</span>, num + <span class="hljs-number">1</span>);&#125;<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span><span class="hljs-function"></span>&#123;<span class="hljs-built_in">cin</span> &gt;&gt; n &gt;&gt; m;num = <span class="hljs-number">0</span>;ans = <span class="hljs-number">-1</span>;<span class="hljs-keyword">if</span>(n == m)&#123;<span class="hljs-built_in">cout</span>&lt;&lt;<span class="hljs-number">0</span>;<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;&#125; f(n,<span class="hljs-number">0</span>);<span class="hljs-built_in">cout</span>&lt;&lt;ans;<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;&#125;</code></pre></div><hr><h5 id="测试目录显示"><a href="#测试目录显示" class="headerlink" title="测试目录显示"></a>测试目录显示</h5>]]></content>
-    
-    
-    <categories>
-      
-      <category>杂项</category>
-      
-      <category>博客搭建</category>
-      
-    </categories>
-    
-    
-    <tags>
-      
-      <tag>杂项</tag>
-      
-    </tags>
-    
-  </entry>
-  
-  
-  
-  <entry>
     <title>博客搭建过程记录</title>
     <link href="/2020/04/24/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%BF%87%E7%A8%8B%E8%AE%B0%E5%BD%95/"/>
     <url>/2020/04/24/%E5%8D%9A%E5%AE%A2%E6%90%AD%E5%BB%BA%E8%BF%87%E7%A8%8B%E8%AE%B0%E5%BD%95/</url>
