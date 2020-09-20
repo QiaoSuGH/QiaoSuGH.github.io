@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Regression - TATOVO&#39;s blog</title>
+  <title>Logistic Regression - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2020-09-07 16:10">
-      2020年9月7日 下午
+    <time datetime="2020-09-15 20:06">
+      2020年9月15日 晚上
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      733 字
+      209 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      8
+      2
        分钟
     </span>
   
@@ -204,52 +204,28 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h3 id="Case-Study"><a href="#Case-Study" class="headerlink" title="Case Study"></a>Case Study</h3><h4 id="基本步骤"><a href="#基本步骤" class="headerlink" title="基本步骤"></a>基本步骤</h4><p>预测宝可梦的CP值是一个典型的回归问题。考虑三个基本步骤：选定model；定义loss function；training data：根据loss function/找到一个最好的model。</p>
-<blockquote>
-<p>我们在选定model时会定义各个参数，而loss function就是这些参数的函数–用以评估这些参数的好坏</p>
-</blockquote>
-<p>在这个例子中我们使用<strong>？？？Model</strong>，接着我们得到了loss function。那么如何求解loss function的最小值从而得到最好的model？–<strong>梯度下降法 Gradient Descent</strong></p>
-<h4 id="Gradient-Descent"><a href="#Gradient-Descent" class="headerlink" title="Gradient Descent"></a>Gradient Descent</h4><h5 id="基本操作步骤："><a href="#基本操作步骤：" class="headerlink" title="基本操作步骤："></a>基本操作步骤：</h5><p>这节课里只是简单地介绍了一下Gradient Descent是如何操作的：首先从一元函数求极值开始，我们从某点<code>W0</code>开始，根据导数（这里注意使用梯度下降的前提是loss function是可微的）判断<code>W0</code>应该增大或者减小，然后循环进行这样的变化，直到导数为0。这里便有了<strong>learning rate</strong>这个参数–<code>W0</code>的变化每次都是增加或者减少<code>learning rate * 导数值</code>。推广到二元函数的情形也是一致的：分别求两个变量的偏导数。</p>
-<h5 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h5><p>但是以上只是简单的操作/演示Gradient Descent如何进行，还有一些问题：</p>
-<ul>
-<li>显然对于任意一个二元函数来说，可能local optimal 并非global optimal–由于是从某<code>W0</code>点开始的，因此可能在此附近陷入local minima，而得到不全局的minima。为了让Gradient Descent有效我们必须保证loss function没有局部最优解。</li>
-<li>这里延申出一个问题：我们上面定义的loss function是<strong>凸函数</strong>，只有global optimal。所以：<strong>凸函数的性质？</strong></li>
-</ul>
-<h4 id="对于结果的该进"><a href="#对于结果的该进" class="headerlink" title="对于结果的该进"></a>对于结果的该进</h4><h5 id="其他model"><a href="#其他model" class="headerlink" title="其他model"></a>其他model</h5><p>事实上我们可以尝试增加<code>Xi</code>的次数–使用更高阶数去进行拟合。这样结果就是在训练集上我们的error越来越小，（低次的式子是高次的式子的特殊情况。<strong>考虑可视化的表现：使用更高次数的式子去拟合，其对应的function set包含了低次式对应的function set，所以training data上表现更好是自然的</strong>），但是在testing data上的表现却未必。</p>
-<h5 id="overfitting-过拟合-以及-regularization-正则化"><a href="#overfitting-过拟合-以及-regularization-正则化" class="headerlink" title="overfitting 过拟合 以及 regularization 正则化"></a>overfitting 过拟合 以及 regularization 正则化</h5><p>上面的现象便是过拟合。</p>
-<p>我们可以通过regularization来解决这个问题：在原本loss function的基础上增加一项。<strong>这样的结果是函数变得更加平滑，从而结果更好（平滑意味着输出对输入敏感性降低，从而输入的一些noise对于结果的影响更小）</strong></p>
-<img src="https://gitee.com/Sakura-gh/ML-notes/raw/master/img/regularization.png" srcset="/img/loading.gif" alt="regularization" style="zoom: 33%;" />
+              <h5 id="如果使用Linear-Regression的方法去处理分类问题会怎样？"><a href="#如果使用Linear-Regression的方法去处理分类问题会怎样？" class="headerlink" title="如果使用Linear Regression的方法去处理分类问题会怎样？"></a>如果使用Linear Regression的方法去处理分类问题会怎样？</h5><p>考虑binary classification，那么我们获得拟合曲线之后，针对某个test data中的数据点计算y hat，那么结果如果大于0，则为class 1，否则为class 2。</p>
+<p>注意我们这里的结果是获得了一条拟合曲线，因此其目标是尽可能的“接近”所有的数据点，但是显然这可能会是的拟合出来的曲线无法分开两个类。</p>
+<img src="C:\Users\28425\AppData\Roaming\Typora\typora-user-images\image-20200915202002715.png" srcset="/img/loading.gif" alt="image-20200915202002715" style="zoom:50%;" />
 
 
 
-<p><strong>（这里的参数需要手动调整，从而使其在平滑与不平滑之间达到一个较好的状态）</strong></p>
-<h4 id="问题-1"><a href="#问题-1" class="headerlink" title="问题"></a>问题</h4><ul>
-<li>凸函数 可微 偏导数</li>
-<li>正则化处理过程中增加一项的数学上的理解</li>
-<li>model有哪些？</li>
-</ul>
-<hr>
-<h3 id="对于Gradient-Descent的理解"><a href="#对于Gradient-Descent的理解" class="headerlink" title="对于Gradient Descent的理解"></a>对于Gradient Descent的理解</h3><h4 id="方向导数"><a href="#方向导数" class="headerlink" title="方向导数"></a>方向导数</h4><hr>
+<img src="https://i.loli.net/2020/09/15/UGY23HfkJrwhB7O.png" srcset="/img/loading.gif" alt="image-20200915202655850" style="zoom:50%;" />
 
+<p>非常符合直觉：因为x要么属于C1，要么属于C2。因此我们首先获得从概率1：随便拿，拿到C1中的x的概率。之后我们需要计算总共两种可能得到x的概率：概率2。那么显然属于C1的概率是概率1除以概率2。</p>
+<img src="https://i.loli.net/2020/09/15/EQ4Pqvs2LrDlSw5.png" srcset="/img/loading.gif" alt="image-20200915205752774" style="zoom:50%;" />
             </article>
             <hr>
             <div>
               <div class="post-metas mb-3">
                 
-                  <div class="post-meta mr-3">
-                    <i class="iconfont icon-category"></i>
-                    
-                      <a class="hover-with-bg" href="/categories/Machine-Learning/">Machine Learning</a>
-                    
-                      <a class="hover-with-bg" href="/categories/Machine-Learning/%E6%9D%8E%E5%AE%8F%E6%AF%85%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">李宏毅机器学习笔记</a>
-                    
-                  </div>
-                
                 
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a>
+                      <a class="hover-with-bg" href="/tags/Machine-Learning/">Machine Learning</a>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%9D%8E%E5%AE%8F%E6%AF%85%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">李宏毅机器学习笔记</a>
                     
                   </div>
                 
@@ -262,18 +238,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2020/09/12/SDU2020ML%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">SDU2020ML实验记录</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2020/09/07/%E6%9D%8E%E5%AE%8F%E6%AF%852020%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E8%AF%BE%E7%A8%8B%E8%AE%B0%E5%BD%95/">
-                        <span class="hidden-mobile">李宏毅2020机器学习课程记录</span>
+                      <a href="/2020/09/15/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/">
+                        <span class="hidden-mobile">SDU2020图形学实验记录</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -412,7 +382,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Regression&nbsp;",
+        "Logistic Regression&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

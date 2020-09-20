@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      0 字
+      227 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      3
        分钟
     </span>
   
@@ -204,7 +204,60 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              
+              <h3 id="Lab1"><a href="#Lab1" class="headerlink" title="Lab1"></a>Lab1</h3><blockquote>
+<p>实验一：OpenGL基本使用</p>
+<p>目标：自行配置OpenGL环境，熟悉使用OpenGL</p>
+<p>要求：在屏幕上绘制出一个圆，然后绘制出圆的外接正方形，然后再绘制出正方形的外接圆，重复以上操作几次。</p>
+</blockquote>
+<p>迭代几次，每次更新圆的半径即可。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-meta">#<span class="hljs-meta-keyword">include</span><span class="hljs-meta-string">&lt;GL/glut.h&gt;</span></span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">include</span> <span class="hljs-meta-string">&lt;math.h&gt;</span></span>
+<span class="hljs-keyword">const</span> <span class="hljs-keyword">int</span> n = <span class="hljs-number">1000</span>;
+GLdouble R = <span class="hljs-number">0.05f</span>;
+<span class="hljs-keyword">const</span> GLdouble Pi = <span class="hljs-built_in">acos</span>(<span class="hljs-number">-1</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">myDisplay</span><span class="hljs-params">(<span class="hljs-keyword">void</span>)</span></span>
+<span class="hljs-function"></span>&#123;
+	glClear(GL_COLOR_BUFFER_BIT);
+	glBegin(GL_POINTS);
+	GLdouble d = <span class="hljs-built_in">sqrt</span>(<span class="hljs-number">2</span>);
+
+	<span class="hljs-keyword">int</span> num_iter = <span class="hljs-number">4</span>;
+	<span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; num_iter; ++i)
+	&#123;
+		<span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> j = <span class="hljs-number">0</span>; j &lt; n; ++j)
+			glVertex2f(R * <span class="hljs-built_in">cos</span>(<span class="hljs-number">2</span> * Pi / n * j), R * <span class="hljs-built_in">sin</span>(<span class="hljs-number">2</span> * Pi / n * j));
+		GLdouble x1 = -R, y1 = R;
+		<span class="hljs-keyword">while</span> (x1 &lt; R)
+		&#123;
+			glVertex2f(x1, R), glVertex2f(x1, -R);
+			glVertex2f(-R, y1),glVertex2f(R, y1);
+			x1 += <span class="hljs-number">0.001</span>;y1 -= <span class="hljs-number">0.001</span>;
+		&#125;
+		R *= d;
+	&#125;
+	glEnd();
+	glFlush();
+&#125;
+
+<span class="hljs-function"><span class="hljs-keyword">int</span> <span class="hljs-title">main</span><span class="hljs-params">(<span class="hljs-keyword">int</span> argc, <span class="hljs-keyword">char</span>** argv)</span></span>
+<span class="hljs-function"></span>&#123;
+	glutInit(&amp;argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_SINGLE);
+	glutInitWindowSize(<span class="hljs-number">1000</span>, <span class="hljs-number">1000</span>);
+	glutInitWindowPosition(<span class="hljs-number">400</span>, <span class="hljs-number">100</span>);
+	
+	glutCreateWindow(<span class="hljs-string">"Lab01"</span>);
+	glutDisplayFunc(&amp;myDisplay);
+	glutMainLoop();
+
+	<span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+&#125;</code></pre></div>
+
+<h5 id="问题："><a href="#问题：" class="headerlink" title="问题："></a>问题：</h5><ul>
+<li>一改动窗口就直接卡死</li>
+</ul>
+
             </article>
             <hr>
             <div>
@@ -229,12 +282,18 @@
                   <div class="post-prev col-6">
                     
                     
+                      <a href="/2020/09/15/Logistic%20Regression/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Logistic Regression</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
+                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2020/09/12/SDU2020ML%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/">
-                        <span class="hidden-mobile">SDU2020ML实验记录</span>
+                      <a href="/2020/09/12/SDU2020ML_Lab1_Regression/">
+                        <span class="hidden-mobile">SDU2020ML Lab1 Regression</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>

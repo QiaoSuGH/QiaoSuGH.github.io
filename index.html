@@ -168,6 +168,46 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2020/09/15/Logistic%20Regression/">Logistic Regression</a>
+
+      <a href="/2020/09/15/Logistic%20Regression/" class="index-excerpt">
+        
+        
+          
+        
+        <div>如果使用Linear Regression的方法去处理分类问题会怎样？考虑binary classification，那么我们获得拟合曲线之后，针对某个test data中的数据点计算y hat，那么结果如果大于0，则为class 1，否则为class 2。
+注意我们这里的结果是获得了一条拟合曲线，因此其目标是尽可能的“接近”所有的数据点，但是显然这可能会是的拟合出来的曲线无法分开两个类。
+
+
+
+</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2020-09-15
+          </div>
+        
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Machine-Learning/">Machine Learning</a>
+            
+              <a href="/tags/%E6%9D%8E%E5%AE%8F%E6%AF%85%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">李宏毅机器学习笔记</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2020/09/15/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/">SDU2020图形学实验记录</a>
 
       <a href="/2020/09/15/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/" class="index-excerpt">
@@ -175,7 +215,16 @@
         
           
         
-        <div></div>
+        <div>Lab1
+实验一：OpenGL基本使用
+目标：自行配置OpenGL环境，熟悉使用OpenGL
+要求：在屏幕上绘制出一个圆，然后绘制出圆的外接正方形，然后再绘制出正方形的外接圆，重复以上操作几次。
+
+迭代几次，每次更新圆的半径即可。
+#include&lt;GL/glut.h&gt;
+#include &lt;math.h&gt;
+const int n = 1000;
+GLdouble R = 0</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -203,24 +252,27 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2020/09/12/SDU2020ML%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/">SDU2020ML实验记录</a>
+      <a class="index-header" href="/2020/09/12/SDU2020ML_Lab1_Regression/">SDU2020ML Lab1 Regression</a>
 
-      <a href="/2020/09/12/SDU2020ML%E5%AE%9E%E9%AA%8C%E8%AE%B0%E5%BD%95/" class="index-excerpt">
+      <a href="/2020/09/12/SDU2020ML_Lab1_Regression/" class="index-excerpt">
         
         
           
         
         <div>
-实验环境：Octave
 指导书以及数据集：https://funglee.github.io/ml/ml.html
 
+2D Linear Regression and Understanding J(θ)
+要求：
 
-Lab1 Regression2D Linear Regression代码%一元线性回归 使用BGD
-x = load('ex1_1x.dat');
-y = load('ex1_1y.dat');
-figure;
-plot(x,y,'o');
-ylabel('Height in</div>
+记录经过一次迭代之后theta的值
+进行BGD，得到最终theta的值
+根据上一步theta的值进行预测
+作出J(θ)的图像
+
+
+代码%一元线性回归 使用BGD
+x = load('ex1_1x.dat')</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -248,9 +300,9 @@ ylabel('Height in</div>
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2020/09/07/Regression/">Regression</a>
+      <a class="index-header" href="/2020/09/07/Linear%20Regression/">Regression</a>
 
-      <a href="/2020/09/07/Regression/" class="index-excerpt">
+      <a href="/2020/09/07/Linear%20Regression/" class="index-excerpt">
         
         
           
