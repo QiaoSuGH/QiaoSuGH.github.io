@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Matlab/Octave使用记录 - TATOVO&#39;s blog</title>
+  <title>SDU2020图形学笔记 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2020-09-23 20:10">
-      2020年9月23日 晚上
+    <time datetime="2020-09-25 11:35">
+      2020年9月25日 中午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      160 字
+      814 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      2
+      8
        分钟
     </span>
   
@@ -204,12 +204,35 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="图形"><a href="#图形" class="headerlink" title="图形"></a>图形</h4><h5 id="surf"><a href="#surf" class="headerlink" title="surf"></a>surf</h5><blockquote>
-<p><code>surf(X,Y,Z)</code> 创建一个三维曲面图，它是一个具有实色边和实色面的三维曲面。该函数将矩阵 <code>Z</code> 中的值绘制为由 <code>X</code> 和 <code>Y</code> 定义的 x-y 平面中的网格上方的高度。曲面的颜色根据 <code>Z</code> 指定的高度而变化。</p>
+              <h3 id="光栅图形学"><a href="#光栅图形学" class="headerlink" title="光栅图形学"></a>光栅图形学</h3><blockquote>
+<p>整体思路是连续到离散</p>
 </blockquote>
-<p>注意<code>surf</code>会自动地进行<code>meshgrid</code>：<code>[X Y] = meshgrid(x,y)</code>，而这个操作地结果类似如下：</p>
-<p><strong>X<sub>i j</sub>  = x<sub>j</sub></strong>        <strong>Y<sub>i j</sub> =  y<sub>i</sub></strong></p>
-<p>因此如果<strong>Z<sub>i j</sub> = Func(x<sub>i</sub>,y<sub>j</sub>)</strong>，那么需要将<strong>Z</strong>进行转置，从而<strong>Z<sup>T</sup> <sub>i j</sub> = Func(X<sub>i j</sub>，Y<sub>i j</sub>)</strong>，此时进行<code>surf(X,Y,Z)</code>会得到正确的结果。</p>
+<h4 id="多边形的扫描转换与区域填充"><a href="#多边形的扫描转换与区域填充" class="headerlink" title="多边形的扫描转换与区域填充"></a>多边形的扫描转换与区域填充</h4><h5 id="扫描线算法AET-NET的设计思路"><a href="#扫描线算法AET-NET的设计思路" class="headerlink" title="扫描线算法AET/NET的设计思路"></a>扫描线算法AET/NET的设计思路</h5><p>首先明确我们的<strong>目标</strong>：</p>
+<ul>
+<li>确定扫描线与多边形各边是否有交点</li>
+<li>如果有交点，那么求出交点坐标</li>
+</ul>
+<p>注意扫描的纵坐标我们是知道的–扫描线从Y<sub>min</sub> 迭代到Y<sub>max</sub> ，并且步长为1。因此自然的想法便是对于一条边，我们得到其纵坐标的极值，如果有：</p>
+<p>$$<br>Y_{min}^{i}\leq S^{i}\leq Y_{max}^{i}<br>$$<br>那么自然两者有交点。如果扫描线小于某边的Y<sub>min</sub>或者大于Y<sub>max</sub>那么自然不会有交点。所以一个自然的想法在于根据每条边的Y<sub>min</sub> 进行“分类”——更具体点说，<strong>对于每条边，将其归属于Y<sub>min</sub>对应的扫描线，从而这些边必定与其归属的扫描线相交。</strong></p>
+<p>那么如何处理Y<sub>max</sub> ？</p>
+<p>考虑每条扫描线，我们用链表记录与其相交的边。那么当扫描线i 往上扫描时，我们至少需要增加Y<sub>min</sub> = i + 1的那些边。除此之外，对于与扫描线i 相交的那些边，如果其Y<sub>max</sub> &gt;= S<sup> i</sup> ，那么显然两者应该相交。</p>
+<p>所以我们边链表的结点至少应该记录每条边的Y<sub> max</sub>，并且初始时所具有的边为Y<sub>min</sub> =S<sup> i</sup>。（注意这里的边链表“属于”某条扫描线）</p>
+<p>那么我们已经达到了第一个目标：</p>
+<div class="hljs"><pre><code class="hljs pf">首先初始化
+接着进行迭代更新：
+   如果Y<span class="hljs-keyword">max</span>值大于等于Si，那么保留</code></pre></div>
+
+
+
+<p>所以我们如何计算交点坐标？</p>
+<p>注意这部分其实也包含了图形学一个重要思想：增量。即：我们希望从原本的计算结果进行修改从而得到新的结果，而非重新计算。（尽管“计算”是不可避免的）</p>
+<p>那么考虑第一个交点：显然根据上述，Y<sub>min</sub>对应的扫描线与其交点应当记录其横坐标值。重要的是，如果我们知道了某边Y<sub>min</sub> 对应的横坐标的值，并且知道Y增加1对应的横坐标的增量，那么只要扫描线继续相交，我们便可以得到接下来的交点坐标。（更详细地说，类似于我们知道一条直线，如果横坐标增量为1，那么纵坐标增量为k–斜率。这里恰好相反，横坐标增量为1/k。当然，如果k为0，那么不会继续相交。）</p>
+<p>所以对于每条边，我们除了记录Y<sub>max</sub>，还需要Y<sub>min</sub>对应的横坐标的值以及Y加一时其增量。这便是<strong>边链表的结点的结构-</strong>-Y<sub>min</sub>对应的横坐标延申为交点横坐标，从而满足不断迭代的变化。</p>
+<p>这时我们第二个目标也达到了：</p>
+<div class="hljs"><pre><code class="hljs 1c">首先初始化，得到每条扫描线所具有的边--包括交点横坐标、横坐标增量以及Ymax <span class="hljs-comment">//建立NET</span>
+接着进行迭代更新：
+   如果Ymax值大于等于Si，那么保留，并且根据横坐标增量更新交点横坐标 <span class="hljs-comment">//更新AET</span></code></pre></div>
+
 
             </article>
             <hr>
@@ -219,10 +242,17 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/Machine-Learning/">Machine Learning</a>
+                      <a class="hover-with-bg" href="/categories/Computer-Graphics/">Computer Graphics</a>
                     
                   </div>
                 
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a>
+                    
+                  </div>
                 
               </div>
               
@@ -233,18 +263,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2020/09/24/SDU2020ML-Lab2-Logistic-Regression/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">SDU2020ML Lab2 Logistic Regression</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2020/09/15/Logistic%20Regression/">
-                        <span class="hidden-mobile">Logistic Regression</span>
+                      <a href="/2020/09/24/SDU2020ML-Lab2-Logistic-Regression/">
+                        <span class="hidden-mobile">SDU2020ML Lab2 Logistic Regression</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -383,7 +407,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Matlab/Octave使用记录&nbsp;",
+        "SDU2020图形学笔记&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

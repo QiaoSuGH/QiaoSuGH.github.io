@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Matlab/Octave使用记录 - TATOVO&#39;s blog</title>
+  <title>SDU2020ML Lab2 Logistic Regression - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2020-09-23 20:10">
-      2020年9月23日 晚上
+    <time datetime="2020-09-24 09:58">
+      2020年9月24日 上午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      160 字
+      212 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      2
+      3
        分钟
     </span>
   
@@ -204,12 +204,16 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="图形"><a href="#图形" class="headerlink" title="图形"></a>图形</h4><h5 id="surf"><a href="#surf" class="headerlink" title="surf"></a>surf</h5><blockquote>
-<p><code>surf(X,Y,Z)</code> 创建一个三维曲面图，它是一个具有实色边和实色面的三维曲面。该函数将矩阵 <code>Z</code> 中的值绘制为由 <code>X</code> 和 <code>Y</code> 定义的 x-y 平面中的网格上方的高度。曲面的颜色根据 <code>Z</code> 指定的高度而变化。</p>
+              <h4 id="Matlab-Octave-记录"><a href="#Matlab-Octave-记录" class="headerlink" title="Matlab/Octave 记录"></a>Matlab/Octave 记录</h4><h5 id="find函数"><a href="#find函数" class="headerlink" title="find函数"></a>find函数</h5><blockquote>
+<p><a href="https://www.cnblogs.com/anzhiwu815/p/5907033.html" target="_blank" rel="noopener">https://www.cnblogs.com/anzhiwu815/p/5907033.html</a></p>
+<p><a href="https://blog.csdn.net/xd15010130025/article/details/100084176" target="_blank" rel="noopener">https://blog.csdn.net/xd15010130025/article/details/100084176</a></p>
+<p><a href="https://ww2.mathworks.cn/help/matlab/ref/find.html?s_tid=srchtitle#budqulo-2" target="_blank" rel="noopener">https://ww2.mathworks.cn/help/matlab/ref/find.html?s_tid=srchtitle#budqulo-2</a></p>
 </blockquote>
-<p>注意<code>surf</code>会自动地进行<code>meshgrid</code>：<code>[X Y] = meshgrid(x,y)</code>，而这个操作地结果类似如下：</p>
-<p><strong>X<sub>i j</sub>  = x<sub>j</sub></strong>        <strong>Y<sub>i j</sub> =  y<sub>i</sub></strong></p>
-<p>因此如果<strong>Z<sub>i j</sub> = Func(x<sub>i</sub>,y<sub>j</sub>)</strong>，那么需要将<strong>Z</strong>进行转置，从而<strong>Z<sup>T</sup> <sub>i j</sub> = Func(X<sub>i j</sub>，Y<sub>i j</sub>)</strong>，此时进行<code>surf(X,Y,Z)</code>会得到正确的结果。</p>
+<ul>
+<li>注意<code>find(矩阵/条件，num)</code>这里的num是符合条件的目标数目。例如：<code>find(X,3)</code>即为找到前三个不为0的元素的索引；而<code>find(X==9,3)</code>即为找到X中等于9的前三个元素的索引。</li>
+</ul>
+<h4 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h4><h5 id="BGD"><a href="#BGD" class="headerlink" title="BGD"></a>BGD</h5><p>相比Lab1当中通过嵌套循环的方式实现的BGD，这次的实现更加高效。考虑：</p>
+<p>$$<br>\nabla_{\theta} L=\frac{1}{m} \sum_{i=1}^{m}\left(h_{\theta}\left(x^{(i)}\right)-y^{(i)}\right) x^{(i)}<br>$$<br>不妨有<br>$$<br>h_{\theta}\left(x^{(i)}\right)-y^{(i)}=H_{\theta}^{(i)}<br>$$<br>从而<br>$$<br>\nabla_{\theta}L=\frac{1}{m} \sum_{i=1}^{m}\left(h_{\theta}\left(x^{(i)}\right)-y^{(i)}\right)x^{(i)}=\frac{1}{m} \sum_{i=1}^{m}H_{\theta}^{(i)}x^{(i)}=\frac{1}{m}H_{\theta}^{T}x<br>$$</p>
 
             </article>
             <hr>
@@ -221,8 +225,17 @@
                     
                       <a class="hover-with-bg" href="/categories/Machine-Learning/">Machine Learning</a>
                     
+                      <a class="hover-with-bg" href="/categories/Machine-Learning/SDU2020-ML%E8%AE%B0%E5%BD%95/">SDU2020 ML记录</a>
+                    
                   </div>
                 
+                
+                  <div class="post-meta">
+                    <i class="iconfont icon-tags"></i>
+                    
+                      <a class="hover-with-bg" href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a>
+                    
+                  </div>
                 
               </div>
               
@@ -233,9 +246,9 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2020/09/24/SDU2020ML-Lab2-Logistic-Regression/">
+                      <a href="/2020/09/25/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E7%AC%94%E8%AE%B0/">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">SDU2020ML Lab2 Logistic Regression</span>
+                        <span class="hidden-mobile">SDU2020图形学笔记</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -243,8 +256,8 @@
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2020/09/15/Logistic%20Regression/">
-                        <span class="hidden-mobile">Logistic Regression</span>
+                      <a href="/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/">
+                        <span class="hidden-mobile">Matlab/Octave使用记录</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -383,7 +396,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Matlab/Octave使用记录&nbsp;",
+        "SDU2020ML Lab2 Logistic Regression&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

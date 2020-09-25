@@ -168,14 +168,113 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/">Matlab/Octave使用记</a>
+      <a class="index-header" href="/2020/09/25/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E7%AC%94%E8%AE%B0/">SDU2020图形学笔记</a>
+
+      <a href="/2020/09/25/SDU2020%E5%9B%BE%E5%BD%A2%E5%AD%A6%E7%AC%94%E8%AE%B0/" class="index-excerpt">
+        
+        
+          
+        
+        <div>光栅图形学
+整体思路是连续到离散
+
+多边形的扫描转换与区域填充扫描线算法AET/NET的设计思路首先明确我们的目标：
+
+确定扫描线与多边形各边是否有交点
+如果有交点，那么求出交点坐标
+
+注意扫描的纵坐标我们是知道的–扫描线从Ymin 迭代到Ymax ，并且步长为1。因此自然的想法便是对于一条边，我们得到其纵坐标的极值，如果有：
+$$Y_{min}^{i}\leq S^{i}\leq Y_{max}</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2020-09-25
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Computer-Graphics/">Computer Graphics</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E5%9B%BE%E5%BD%A2%E5%AD%A6/">图形学</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2020/09/24/SDU2020ML-Lab2-Logistic-Regression/">SDU2020ML Lab2 Logistic Regression</a>
+
+      <a href="/2020/09/24/SDU2020ML-Lab2-Logistic-Regression/" class="index-excerpt">
+        
+        
+          
+        
+        <div>Matlab/Octave 记录find函数
+https://www.cnblogs.com/anzhiwu815/p/5907033.html
+https://blog.csdn.net/xd15010130025/article/details/100084176
+https://ww2.mathworks.cn/help/matlab/ref/find.html?s_tid=srchtitl</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2020-09-24
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Machine-Learning/">Machine Learning</a>
+            
+              <a href="/categories/Machine-Learning/SDU2020-ML%E8%AE%B0%E5%BD%95/">SDU2020 ML记录</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/">Matlab/Octave使用记录</a>
 
       <a href="/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/" class="index-excerpt">
         
         
           
         
-        <div></div>
+        <div>图形surf
+surf(X,Y,Z) 创建一个三维曲面图，它是一个具有实色边和实色面的三维曲面。该函数将矩阵 Z 中的值绘制为由 X 和 Y 定义的 x-y 平面中的网格上方的高度。曲面的颜色根据 Z 指定的高度而变化。
+
+注意surf会自动地进行meshgrid：[X Y] = meshgrid(x,y)，而这个操作地结果类似如下：
+Xi j  = xj        Yi j =  yi
+因此</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -184,6 +283,13 @@
             <i class="iconfont icon-date"></i>&nbsp;2020-09-23
           </div>
         
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Machine-Learning/">Machine Learning</a>
+            
+          </div>
         
         
       </div>
@@ -216,13 +322,20 @@
           </div>
         
         
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Machine-Learning/">Machine Learning</a>
+            
+              <a href="/categories/Machine-Learning/%E6%9D%8E%E5%AE%8F%E6%AF%85%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">李宏毅机器学习笔记</a>
+            
+          </div>
+        
         
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/Machine-Learning/">Machine Learning</a>
-            
-              <a href="/tags/%E6%9D%8E%E5%AE%8F%E6%AF%85%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">李宏毅机器学习笔记</a>
+              <a href="/tags/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/">机器学习</a>
             
           </div>
         
@@ -241,16 +354,26 @@
         
           
         
-        <div>Lab1
-实验一：OpenGL基本使用
-目标：自行配置OpenGL环境，熟悉使用OpenGL
-要求：在屏幕上绘制出一个圆，然后绘制出圆的外接正方形，然后再绘制出正方形的外接圆，重复以上操作几次。
+        <div>Lab1略。
+Lab2
+要求：
 
-迭代几次，每次更新圆的半径即可。
-#include&lt;GL/glut.h&gt;
-#include &lt;math.h&gt;
-const int n = 1000;
-GLdouble R = 0</div>
+实现至少两种画线算法（须包括Bresenham算法）
+
+实现画圆算法
+
+不允许使用图形库
+
+通过屏幕鼠标交互进行绘制（对直线和圆的控制）
+
+
+
+关键
+算法实现：需要考虑到书上给出的示例一般是在斜率K在0、1之间的情况，因此这里我们需要推广到R上。具体思路其实也很多。
+glut库中鼠标交互的学习
+
+代码三种直线算法#include&lt;gl/glut.h&gt;
+</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -285,9 +408,9 @@ GLdouble R = 0</div>
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2020/09/12/SDU2020ML_Lab1_Regression/">SDU2020ML Lab1 Regression</a>
+      <a class="index-header" href="/2020/09/12/SDU2020ML_Lab1_Linear%20Regression/">SDU2020ML Lab1 Linear Regression</a>
 
-      <a href="/2020/09/12/SDU2020ML_Lab1_Regression/" class="index-excerpt">
+      <a href="/2020/09/12/SDU2020ML_Lab1_Linear%20Regression/" class="index-excerpt">
         
         
           
