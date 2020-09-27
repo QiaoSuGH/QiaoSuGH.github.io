@@ -83,25 +83,6 @@
   
   
   <entry>
-    <title>Matlab/Octave使用记录</title>
-    <link href="/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/"/>
-    <url>/2020/09/23/Matlab-Octave%E4%BD%BF%E7%94%A8%E8%AE%B0/</url>
-    
-    <content type="html"><![CDATA[<h4 id="图形"><a href="#图形" class="headerlink" title="图形"></a>图形</h4><h5 id="surf"><a href="#surf" class="headerlink" title="surf"></a>surf</h5><blockquote><p><code>surf(X,Y,Z)</code> 创建一个三维曲面图，它是一个具有实色边和实色面的三维曲面。该函数将矩阵 <code>Z</code> 中的值绘制为由 <code>X</code> 和 <code>Y</code> 定义的 x-y 平面中的网格上方的高度。曲面的颜色根据 <code>Z</code> 指定的高度而变化。</p></blockquote><p>注意<code>surf</code>会自动地进行<code>meshgrid</code>：<code>[X Y] = meshgrid(x,y)</code>，而这个操作地结果类似如下：</p><p><strong>X<sub>i j</sub>  = x<sub>j</sub></strong>        <strong>Y<sub>i j</sub> =  y<sub>i</sub></strong></p><p>因此如果<strong>Z<sub>i j</sub> = Func(x<sub>i</sub>,y<sub>j</sub>)</strong>，那么需要将<strong>Z</strong>进行转置，从而<strong>Z<sup>T</sup> <sub>i j</sub> = Func(X<sub>i j</sub>，Y<sub>i j</sub>)</strong>，此时进行<code>surf(X,Y,Z)</code>会得到正确的结果。</p>]]></content>
-    
-    
-    <categories>
-      
-      <category>Machine Learning</category>
-      
-    </categories>
-    
-    
-  </entry>
-  
-  
-  
-  <entry>
     <title>Logistic Regression</title>
     <link href="/2020/09/15/Logistic%20Regression/"/>
     <url>/2020/09/15/Logistic%20Regression/</url>
