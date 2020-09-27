@@ -287,9 +287,8 @@ j_vals = j_vals';
 surf(theta0_vals, theta1_vals,j_vals);
 xlabel(<span class="hljs-string">'\theta_0'</span>); ylabel(<span class="hljs-string">'\theta_1'</span>);
 [X,Y] = <span class="hljs-built_in">meshgrid</span>(theta0_vals,theta1_vals);</code></pre></div>
-
 <h5 id="问题："><a href="#问题：" class="headerlink" title="问题："></a>问题：</h5><ul>
-<li>注意到我们在<code>theta = theta - (alpha * sum) / m</code>中除以了<code>m</code>，经过测试如果不除以<code>m</code>，那么结果的图像是没有线的。（？？？）但是这不是cost function的两种形式吗，为什么不除以<code>m</code>就不行？进一步延申：为什么代价函数的形式是这样的？（前面是否可以是任意实数–网上答案是“是”，如何证明？）</li>
+<li>注意到我们在<code>theta = theta - (alpha * sum) / m</code>中除以了<code>m</code>，经过测试如果不除以<code>m</code>，那么结果的图像是没有线的。（？？？）但是这不是cost function的两种形式吗，为什么不除以<code>m</code>就不行？进一步延申：为什么代价函数的形式是这样的？（前面是否可以是任意实数—网上答案是“是”，如何证明？）</li>
 </ul>
 <h5 id="BGD算法实现"><a href="#BGD算法实现" class="headerlink" title="BGD算法实现"></a>BGD算法实现</h5><div class="hljs"><pre><code class="hljs matlab"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">theta</span> = <span class="hljs-title">bgd</span><span class="hljs-params">(x,y,num_iter,theta,alpha)</span></span>
 	m = <span class="hljs-built_in">length</span>(y);
@@ -317,7 +316,6 @@ xlabel(<span class="hljs-string">'\theta_0'</span>); ylabel(<span class="hljs-st
   m = <span class="hljs-built_in">length</span>(y);
   jij = (x*t - y)' * (x*t - y) / (<span class="hljs-number">2</span> * m); 
 <span class="hljs-keyword">end</span>;</code></pre></div>
-
 <hr>
 <h4 id="Multivariate-Linear-Regression"><a href="#Multivariate-Linear-Regression" class="headerlink" title="Multivariate Linear Regression"></a>Multivariate Linear Regression</h4><blockquote>
 <p>要求：</p>
@@ -392,16 +390,13 @@ alpha = <span class="hljs-number">0.01</span>;
   <span class="hljs-built_in">hold</span> on;
   alpha = alpha * <span class="hljs-number">3</span>;
 <span class="hljs-keyword">end</span>;</code></pre></div>
-
 <h5 id="特征缩放"><a href="#特征缩放" class="headerlink" title="特征缩放"></a>特征缩放</h5><h5 id="回答问题"><a href="#回答问题" class="headerlink" title="回答问题"></a>回答问题</h5><ul>
 <li><p>如果学习率太小，例如0.001，那么损失函数下降得非常缓慢；</p>
-<img src="https://i.loli.net/2020/09/20/ntKmgTByLr5b8WS.png" srcset="/img/loading.gif" alt="image-20200920212924281" style="zoom: 67%;" />
-
+<p><img src="https://i.loli.net/2020/09/20/ntKmgTByLr5b8WS.png" srcset="/img/loading.gif" alt="image-20200920212924281" style="zoom: 67%;" /></p>
 <p>如果学习率太大，例如1，那么下降很快并且停止</p>
 </li>
 </ul>
-<img src="https://i.loli.net/2020/09/20/EAt2OSreUXoIGkZ.png" srcset="/img/loading.gif" alt="image-20200920213034741" style="zoom:67%;" />
-
+<p><img src="https://i.loli.net/2020/09/20/EAt2OSreUXoIGkZ.png" srcset="/img/loading.gif" alt="image-20200920213034741" style="zoom:67%;" /></p>
 <ul>
 <li><p>进行预测</p>
 <div class="hljs"><pre><code class="hljs matlab">x = load(<span class="hljs-string">'ex1_2x.dat'</span>);
@@ -446,7 +441,6 @@ pre_x = [<span class="hljs-number">1</span>,<span class="hljs-number">1650</span
 pre_x(<span class="hljs-number">1</span>,<span class="hljs-number">2</span>) = (pre_x(<span class="hljs-number">1</span>,<span class="hljs-number">2</span>) - mu(<span class="hljs-number">2</span>)) / sigma(<span class="hljs-number">2</span>);
 pre_x(<span class="hljs-number">1</span>,<span class="hljs-number">3</span>) = (pre_x(<span class="hljs-number">1</span>,<span class="hljs-number">3</span>) - mu(<span class="hljs-number">3</span>)) / sigma(<span class="hljs-number">3</span>);
 <span class="hljs-built_in">disp</span>(pre_x * theta);</code></pre></div>
-
 <p><img src="https://i.loli.net/2020/09/20/74zCd832WrA1etQ.png" srcset="/img/loading.gif" alt="image-20200920215250588"></p>
 </li>
 </ul>

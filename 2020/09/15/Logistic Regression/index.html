@@ -206,15 +206,10 @@
             <article class="markdown-body">
               <h5 id="如果使用Linear-Regression的方法去处理分类问题会怎样？"><a href="#如果使用Linear-Regression的方法去处理分类问题会怎样？" class="headerlink" title="如果使用Linear Regression的方法去处理分类问题会怎样？"></a>如果使用Linear Regression的方法去处理分类问题会怎样？</h5><p>考虑binary classification，那么我们获得拟合曲线之后，针对某个test data中的数据点计算y hat，那么结果如果大于0，则为class 1，否则为class 2。</p>
 <p>注意我们这里的结果是获得了一条拟合曲线，因此其目标是尽可能的“接近”所有的数据点，但是显然这可能会是的拟合出来的曲线无法分开两个类。</p>
-<img src="C:\Users\28425\AppData\Roaming\Typora\typora-user-images\image-20200915202002715.png" srcset="/img/loading.gif" alt="image-20200915202002715" style="zoom:50%;" />
-
-
-
-<img src="https://i.loli.net/2020/09/15/UGY23HfkJrwhB7O.png" srcset="/img/loading.gif" alt="image-20200915202655850" style="zoom:50%;" />
-
+<p><img src="C:\Users\28425\AppData\Roaming\Typora\typora-user-images\image-20200915202002715.png" srcset="/img/loading.gif" alt="image-20200915202002715" style="zoom:50%;" /></p>
+<p><img src="https://i.loli.net/2020/09/15/UGY23HfkJrwhB7O.png" srcset="/img/loading.gif" alt="image-20200915202655850" style="zoom:50%;" /></p>
 <p>非常符合直觉：因为x要么属于C1，要么属于C2。因此我们首先获得从概率1：随便拿，拿到C1中的x的概率。之后我们需要计算总共两种可能得到x的概率：概率2。那么显然属于C1的概率是概率1除以概率2。</p>
-<img src="https://i.loli.net/2020/09/15/EQ4Pqvs2LrDlSw5.png" srcset="/img/loading.gif" alt="image-20200915205752774" style="zoom:50%;" />
-
+<p><img src="https://i.loli.net/2020/09/15/EQ4Pqvs2LrDlSw5.png" srcset="/img/loading.gif" alt="image-20200915205752774" style="zoom:50%;" /></p>
 <hr>
 
             </article>
