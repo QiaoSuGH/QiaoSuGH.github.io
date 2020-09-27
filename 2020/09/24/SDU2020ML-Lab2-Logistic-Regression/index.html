@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      212 字
+      860 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      3
+      12
        分钟
     </span>
   
@@ -212,8 +212,82 @@
 <ul>
 <li>注意<code>find(矩阵/条件，num)</code>这里的num是符合条件的目标数目。例如：<code>find(X,3)</code>即为找到前三个不为0的元素的索引；而<code>find(X==9,3)</code>即为找到X中等于9的前三个元素的索引。</li>
 </ul>
-<h4 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h4><h5 id="BGD"><a href="#BGD" class="headerlink" title="BGD"></a>BGD</h5><p>相比Lab1当中通过嵌套循环的方式实现的BGD，这次的实现更加高效。考虑：</p>
+<h5 id="sum函数"><a href="#sum函数" class="headerlink" title="sum函数"></a>sum函数</h5><blockquote>
+<p><code>S = sum(A)</code> 返回 A 沿大小不等于 1 的第一个数组维度的元素之和。</p>
+<ul>
+<li>如果 <code>A</code> 是向量，则 <code>sum(A)</code> 返回元素之和。</li>
+<li>如果 <code>A</code> 是矩阵，则 <code>sum(A)</code> 将返回包含每列总和的行向量。</li>
+<li>如果 <code>A</code> 是多维数组，则 <code>sum(A)</code> 沿大小不等于 1 的第一个数组维度计算，并将这些元素视为向量。此维度会变为 <code>1</code>，而所有其他维度的大小保持不变。</li>
+</ul>
+</blockquote>
+<ul>
+<li>对于需要求和的计算，使用矩阵<code>.*</code>与<code>sum</code>配合实现比较方便。例如损失函数$L\left(\theta \right) $：<br>$$<br>L\left(\theta \right) = \frac{1}{m}\sum_{i=1}^m[y^{(i)}\log(h_\theta(x^{(i)})) + (1-y^{(i)})log(1 - h_\theta(x^{(i)}))]<br>$$</li>
+</ul>
+  <div class="hljs"><pre><code class="hljs matlab">z = x * theta;
+<span class="hljs-comment">%g为sigmoid函数</span>
+h = g(z);
+L_theta(<span class="hljs-built_in">i</span>,<span class="hljs-number">1</span>) = -(<span class="hljs-number">1</span>/m)*sum(y.*<span class="hljs-built_in">log</span>(h) + (<span class="hljs-number">1</span>-y).*<span class="hljs-built_in">log</span>(<span class="hljs-number">1</span>-h));
+<span class="hljs-comment">%注意y.*log(h)得到列向量，后者同理，因此相加得到列向量，sum函数得到该列的和</span>
+<span class="hljs-comment">%使用矩阵存储L_theta目的是为了方便后续计算连续的L_theta之间的差的绝对值</span></code></pre></div>
+
+<h5 id="内联函数"><a href="#内联函数" class="headerlink" title="内联函数"></a>内联函数</h5><h4 id="算法实现"><a href="#算法实现" class="headerlink" title="算法实现"></a>算法实现</h4><h5 id="BGD"><a href="#BGD" class="headerlink" title="BGD"></a>BGD</h5><p>相比Lab1当中通过嵌套循环的方式实现的BGD，这次的实现更加高效。考虑：</p>
 <p>$$<br>\nabla_{\theta} L=\frac{1}{m} \sum_{i=1}^{m}\left(h_{\theta}\left(x^{(i)}\right)-y^{(i)}\right) x^{(i)}<br>$$<br>不妨有<br>$$<br>h_{\theta}\left(x^{(i)}\right)-y^{(i)}=H_{\theta}^{(i)}<br>$$<br>从而<br>$$<br>\nabla_{\theta}L=\frac{1}{m} \sum_{i=1}^{m}\left(h_{\theta}\left(x^{(i)}\right)-y^{(i)}\right)x^{(i)}=\frac{1}{m} \sum_{i=1}^{m}H_{\theta}^{(i)}x^{(i)}=\frac{1}{m}H_{\theta}^{T}x<br>$$</p>
+<p>具体实现：</p>
+<div class="hljs"><pre><code class="hljs matlab">z = x * theta;
+H = g(z);
+theta = theta - alpha * (x' * (H-y)) / m;
+<span class="hljs-comment">%注意这里theta为列向量</span>
+<span class="hljs-comment">% x' * (H-y) 等价于 ((H-y)' * x)'，但是显然前者代价应该小点</span></code></pre></div>
+
+<h5 id="Newton’s-Method"><a href="#Newton’s-Method" class="headerlink" title="Newton’s Method"></a>Newton’s Method</h5><p>Hession Matrix的理解</p>
+<h4 id="回答问题"><a href="#回答问题" class="headerlink" title="回答问题"></a>回答问题</h4><h5 id="BGD-1"><a href="#BGD-1" class="headerlink" title="BGD"></a>BGD</h5><ul>
+<li><p>大约迭代了680次</p>
+</li>
+<li><p>$\theta_0= -0.050212 \quad \theta_1 =   1.427623 \quad \theta = 1.523630$  </p>
+</li>
+<li><img src="https://i.loli.net/2020/09/27/f9UEcDhtyzCWIli.png" srcset="/img/loading.gif" alt="image-20200927210651310" style="zoom: 67%;" />
+
+<div class="hljs"><pre><code class="hljs matlab"><span class="hljs-built_in">figure</span>;
+<span class="hljs-built_in">plot</span>(<span class="hljs-number">1</span>:num_iter<span class="hljs-number">-1</span>,ill_L_theta,<span class="hljs-string">'-'</span>);
+<span class="hljs-built_in">legend</span>(<span class="hljs-string">'\theta_0'</span>,<span class="hljs-string">'\theta_1'</span>,<span class="hljs-string">'\theta_2'</span>,<span class="hljs-string">'L&#123;(\theta)&#125;'</span>);
+xlabel(<span class="hljs-string">'iter'</span>);
+ylabel(<span class="hljs-string">'L&#123;(\theta)&#125;'</span>);</code></pre></div>
+</li>
+<li><p>作出决策边界：</p>
+<p>注意我们在visualize原始数据的时候，根据Y值的不同使用了不同的符号去绘制，而且在二维平面上，X轴和Y轴分别对应这原始数据的第二维、第三维。因此我们目前绘制决策边界，X轴应当仍然是第二维的，与之相对应的Y轴的值则应该是使用训练出来的$\theta$得到的，并且$\theta^Tx = 0$，即：<br>$$<br>\theta_0 \times x_0 + \theta_1 \times x_1 + \theta_2 \times x_2 = 0\<br>$$<br>从而：</p>
+<div class="hljs"><pre><code class="hljs matlab">x_axis = x(:,<span class="hljs-number">2</span>)*sigma(<span class="hljs-number">1</span>) + mu(<span class="hljs-number">1</span>);
+y_axis = (-theta(<span class="hljs-number">1</span>,<span class="hljs-number">1</span>).*x(:,<span class="hljs-number">1</span>) - theta(<span class="hljs-number">2</span>,<span class="hljs-number">1</span>).*x(:,<span class="hljs-number">2</span>))/theta(<span class="hljs-number">3</span>,<span class="hljs-number">1</span>);
+y_axis = y_axis*sigma(<span class="hljs-number">2</span>) + mu(<span class="hljs-number">2</span>);
+<span class="hljs-built_in">plot</span>(x_axis, y_axis,<span class="hljs-string">'-'</span>);</code></pre></div>
+
+<p>结果：</p>
+<img src="https://i.loli.net/2020/09/27/FfSd8cnj1mAVo6x.png" srcset="/img/loading.gif" alt="image-20200927212136250" style="zoom:67%;" />
+</li>
+<li><div class="hljs"><pre><code class="matlab">pr_x = [<span class="number">1</span>,<span class="number">20</span>,<span class="number">80</span>];
+pr_x(<span class="number">1</span>,<span class="number">2</span>) = (pr_x(<span class="number">1</span>,<span class="number">2</span>) - mu(<span class="number">1</span>)) / sigma(<span class="number">1</span>);
+pr_x(<span class="number">1</span>,<span class="number">3</span>) = (pr_x(<span class="number">1</span>,<span class="number">3</span>) - mu(<span class="number">2</span>)) / sigma(<span class="number">2</span>);
+pro = g(-(pr_x * theta));
+<span class="built_in">disp</span>(pro)</code></pre></div>
+<p>结果：<code>pro =0.66216</code></p>
+</li>
+</ul>
+<h5 id="Netwon’s-Method"><a href="#Netwon’s-Method" class="headerlink" title="Netwon’s Method"></a>Netwon’s Method</h5><ul>
+<li><p>$$<br>\theta_0 =  -0.056595 \quad \theta_1 =  1.472022 \quad \theta_3 = 1.570584<br>$$</p>
+</li>
+<li><p>同上</p>
+</li>
+<li><p>同上</p>
+</li>
+<li><p>结果：<code>pro = 0.66802</code></p>
+</li>
+<li><p>梯度下降和牛顿法的比较</p>
+<ul>
+<li>收敛速度更快</li>
+<li>迭代比较少的次数便可以到达最优值</li>
+<li>但是因为需要计算Hessian矩阵，所以每次迭代代价比较大</li>
+</ul>
+</li>
+</ul>
 
             </article>
             <hr>
