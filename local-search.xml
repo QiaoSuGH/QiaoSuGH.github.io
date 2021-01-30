@@ -4,11 +4,40 @@
   
   
   <entry>
-    <title>MIT6.828-01-环境配置</title>
-    <link href="/2021/01/27/MIT6-828-01-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/"/>
-    <url>/2021/01/27/MIT6-828-01-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/</url>
+    <title>MIT6.828-02-Lab1</title>
+    <link href="/2021/01/27/MIT6-828-02-Lab1/"/>
+    <url>/2021/01/27/MIT6-828-02-Lab1/</url>
     
-    <content type="html"><![CDATA[]]></content>
+    <content type="html"><![CDATA[<h4 id="Part1-PC-Bootstrap"><a href="#Part1-PC-Bootstrap" class="headerlink" title="Part1: PC Bootstrap"></a>Part1: PC Bootstrap</h4><h5 id="熟悉x86汇编"><a href="#熟悉x86汇编" class="headerlink" title="熟悉x86汇编"></a>熟悉x86汇编</h5><ul><li><p><a href="https://www.ibm.com/developerworks/cn/linux/l-assembly/" target="_blank" rel="noopener">https://www.ibm.com/developerworks/cn/linux/l-assembly/</a> 介绍了Linux环境下基本的AT&amp;T风格的汇编</p><p>在编写<code>hello.s</code>之后<code>as -o hello.o hello.s</code>提示：</p><blockquote><p>hello.s: Assembler messages:<br>hello.s: Warning: end of file not at end of a line; newline inserted</p></blockquote><p>在<code>hello.s</code>末尾添加新行即可。<strong>WHY</strong></p><p>另外介绍了inline assembly的基本用法，有点好玩，GCC的支持使得我们可以直接在C语言中直接写汇编。</p></li><li><p><a href="https://pdos.csail.mit.edu/6.828/2018/readings/i386/toc.htm" target="_blank" rel="noopener">80386 Programmer’s Reference Manual</a> 包括从基本的计算机组成到x86 assembly，1.2介绍了历史发展，可以与操作系统的知识结合在一起：从段式分配到页式分配。另外appendix里面包括了80x86 instructions，比较方便。</p></li><li><p><strong>Exercise 2</strong>： Use GDB’s si (Step Instruction) command to trace into the ROM BIOS for a few more instructions, and try to guess what it might be doing.</p><p>首先我们想知道电脑启动的整体过程。<a href="https://medium.com/an-idea/the-not-so-magic-of-how-your-computer-boots-up-2f5e8289451d" target="_blank" rel="noopener">这篇文章介绍了大致过程</a> </p><p>其次使用<code>si</code>去看具体执行了那些命令。<strong>TODO这里由于不懂汇编没看懂具体过程</strong></p></li></ul><h4 id="Part2-The-Boot-Loader"><a href="#Part2-The-Boot-Loader" class="headerlink" title="Part2: The Boot Loader"></a>Part2: The Boot Loader</h4><ul><li><p><img src="https://i.loli.net/2021/01/30/vEmgqHpltSQM5CA.png" srcset="/img/loading.gif" alt="image-20210130160415527"></p><p>​    上图中，左边是使用GDB单步执行的过程，右边是boot.S。</p></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>操作系统</category>
+      
+      <category>MIT6.828</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>操作系统</tag>
+      
+      <tag>MIT6.828</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>MIT6.828-01-环境配置与工具使用</title>
+    <link href="/2021/01/27/MIT6.828-01-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/"/>
+    <url>/2021/01/27/MIT6.828-01-%E7%8E%AF%E5%A2%83%E9%85%8D%E7%BD%AE/</url>
+    
+    <content type="html"><![CDATA[<h4 id="环境搭建"><a href="#环境搭建" class="headerlink" title="环境搭建"></a>环境搭建</h4><blockquote><p>Ubuntu 18.04</p></blockquote><p>这门课实验的最终目标是实现一个微内核操作系统JOS，它是在xv6的基础上改写的。xv6是运行在x86架构上的用于教学的类UNIX操作系统。因此，一方面我们需要利用QEMU来运行xv6，另一方面需要编译工具链来对内核进行编译。官方给的指导：<a href="https://pdos.csail.mit.edu/6.828/2018/tools.html" target="_blank" rel="noopener">https://pdos.csail.mit.edu/6.828/2018/tools.html</a></p><p>事实上这中间可能会遇到一些问题，例如：</p><p><code>make &amp;&amp; make install</code>之后报错：</p><div class="hljs"><pre><code class="hljs html">qga/commands-posix.c: In function ‘dev_major_minor’:qga/commands-posix.c:633:13: error: In the GNU C Library, "major" is defined by <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">sysmacros.h</span>&gt;</span>. For historical compatibility, it is currently defined by <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">types.h</span>&gt;</span> as well, but we plan to remove this soon. To use "major", include <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">sysmacros.h</span>&gt;</span> directly. If you did not intend to use a system-defined macro "major", you should undefine it after including <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">types.h</span>&gt;</span>. [-Werror]         *devmajor = major(st.st_rdev);             ^~~~~~~~~~~~~~~~~~~~~~~~~~  qga/commands-posix.c:634:13: error: In the GNU C Library, "minor" is defined by <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">sysmacros.h</span>&gt;</span>. For historical compatibility, it is currently defined by <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">types.h</span>&gt;</span> as well, but we plan to remove this soon. To use "minor", include <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">sysmacros.h</span>&gt;</span> directly. If you did not intend to use a system-defined macro "minor", you should undefine it after including <span class="hljs-tag">&lt;<span class="hljs-name">sys</span>/<span class="hljs-attr">types.h</span>&gt;</span>. [-Werror]         *devminor = minor(st.st_rdev);             ^~~~~~~~~~~~~~~~~~~~~~~~~~</code></pre></div><p>好在一般前人都踩过坑，Google一下直接照葫芦画瓢即可。</p><p>注：官方QEMU安装教程里面给出的提示，看到网上一些教程貌似没有注意到这里踩了挺多坑。</p><blockquote><p>On Linux, you may need to install several libraries. We have successfully built 6.828 QEMU on Debian/Ubuntu 16.04 after installing the following packages: libsdl1.2-dev, libtool-bin, libglib2.0-dev, libz-dev, and libpixman-1-dev</p></blockquote><h4 id="工具使用"><a href="#工具使用" class="headerlink" title="工具使用"></a>工具使用</h4><h5 id="QEMU"><a href="#QEMU" class="headerlink" title="QEMU"></a>QEMU</h5><ul><li>之前做CS:APP MIPS版本的bomb lab时使用过。主要是模拟硬件，这门课程中模拟了一个32位x86平台。</li></ul><h5 id="GDB"><a href="#GDB" class="headerlink" title="GDB"></a>GDB</h5><ul><li>用得不多，没有系统学过。</li></ul>]]></content>
     
     
     <categories>
