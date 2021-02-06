@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      293 字
+      303 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      3
+      4
        分钟
     </span>
   
@@ -215,6 +215,8 @@
 </li>
 <li><p><a href="https://pdos.csail.mit.edu/6.828/2018/readings/i386/toc.htm" target="_blank" rel="noopener">80386 Programmer’s Reference Manual</a> 包括从基本的计算机组成到x86 assembly，1.2介绍了历史发展，可以与操作系统的知识结合在一起：从段式分配到页式分配。另外appendix里面包括了80x86 instructions，比较方便。</p>
 </li>
+</ul>
+<h5 id="启动过程"><a href="#启动过程" class="headerlink" title="启动过程"></a>启动过程</h5><ul>
 <li><p><strong>Exercise 2</strong>： Use GDB’s si (Step Instruction) command to trace into the ROM BIOS for a few more instructions, and try to guess what it might be doing.</p>
 <p>首先我们想知道电脑启动的整体过程。<a href="https://medium.com/an-idea/the-not-so-magic-of-how-your-computer-boots-up-2f5e8289451d" target="_blank" rel="noopener">这篇文章介绍了大致过程</a> </p>
 <p>其次使用<code>si</code>去看具体执行了那些命令。<strong>TODO这里由于不懂汇编没看懂具体过程</strong></p>
@@ -222,10 +224,10 @@
 </ul>
 <h4 id="Part2-The-Boot-Loader"><a href="#Part2-The-Boot-Loader" class="headerlink" title="Part2: The Boot Loader"></a>Part2: The Boot Loader</h4><ul>
 <li><p><img src="https://i.loli.net/2021/01/30/vEmgqHpltSQM5CA.png" srcset="/img/loading.gif" alt="image-20210130160415527"></p>
-<p>​    上图中，左边是使用GDB单步执行的过程，右边是boot.S。</p>
+<p>上图中，左边是使用GDB单步执行的过程，右边是boot.S。</p>
 </li>
 </ul>
-
+<h5 id="理解boot-loader-source-code"><a href="#理解boot-loader-source-code" class="headerlink" title="理解boot loader source code"></a>理解boot loader source code</h5>
             </article>
             <hr>
             <div>

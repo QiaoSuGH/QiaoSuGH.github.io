@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      213 字
+      454 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      3
+      5
        分钟
     </span>
   
@@ -247,6 +247,29 @@ git push qscs144 master</code></pre></div>
 &#125;</code></pre></div>
 <p><img src="https://i.loli.net/2021/02/01/jRvxaIM3UEVYmbc.png" srcset="/img/loading.gif" alt="image-20210201182035652" style="zoom:67%;" /></p>
 <p><img src="https://i.loli.net/2021/02/01/ihq8ZB2t4op5dcu.png" srcset="/img/loading.gif" alt="image-20210201182059748" style="zoom:67%;" /></p>
+<h5 id="an-in-memory-reliable-byte-stream"><a href="#an-in-memory-reliable-byte-stream" class="headerlink" title="an in-memory reliable byte stream"></a>an in-memory reliable byte stream</h5><p>在上面的实验中我们可以看到socket提供给用户的感觉就是能够将字节可靠地通过网络在主机之间进行交互。这里我们需要实现一个单线程的、位于内存的byte stream。</p>
+<p>要求：</p>
+<ul>
+<li>有序 FIFO</li>
+<li>初始化时固定容量</li>
+<li>控制输入操作</li>
+</ul>
+<p>如何实现？思路：</p>
+<ul>
+<li>最初根据FIFO第一反应是直接使用<code>queue</code>。但是我们<code>read/write</code>的对象都是<code>string</code>，而且有时需要根据字节长度去读取，因此使用<code>queue</code>比较麻烦——需要不断地去遍历得到指定长度的<code>string</code></li>
+<li>直接使用一个<code>string</code>对象？所有的操作直接在这个对象上进行。感觉比较方便。</li>
+</ul>
+<blockquote>
+<p><code>string</code>与字符、字节之间的关系</p>
+</blockquote>
+<p>具体代码比较简单。</p>
+<h4 id="关于构建"><a href="#关于构建" class="headerlink" title="关于构建"></a>关于构建</h4><ul>
+<li><p>注意，这里我们必须列表初始化成员：</p>
+<blockquote>
+<p>‘ByteStream::_BStream’ should be initialized in the member initialization list [-Werror=effc++]</p>
+</blockquote>
+</li>
+</ul>
 
             </article>
             <hr>
