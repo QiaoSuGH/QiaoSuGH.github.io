@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>CS144-01-Lab0 - TATOVO&#39;s blog</title>
+  <title>CS144-02-Lab1 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-01-30 16:39">
-      2021年1月30日 下午
+    <time datetime="2021-02-06 17:06">
+      2021年2月6日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      454 字
+      539 字
     </span>
   
 
@@ -204,70 +204,30 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="环境配置"><a href="#环境配置" class="headerlink" title="环境配置"></a>环境配置</h4><h5 id="VSCode-Remote-Development"><a href="#VSCode-Remote-Development" class="headerlink" title="VSCode Remote Development"></a>VSCode Remote Development</h5><ul>
-<li><p>随便搜了一些教程，按步骤操作即可。</p>
-<p><img src="C:\Users\28425\AppData\Roaming\Typora\typora-user-images\image-20210131143446968.png" srcset="/img/loading.gif" alt="image-20210131143446968" style="zoom: 50%;" /></p>
-</li>
-<li><p>中间自动推荐了C++相关插件，安装即可。</p>
-</li>
-</ul>
-<h5 id="Git"><a href="#Git" class="headerlink" title="Git"></a>Git</h5><ul>
-<li><p>安装</p>
-<div class="hljs"><pre><code class="hljs html">git config --global user.name "xxx" // user.email "xxx"</code></pre></div>
-</li>
-<li><p>关联远程仓库并推送</p>
-<div class="hljs"><pre><code class="hljs xml">git remote -v可以看到已经存在的仓库 因为是从CS144的官方clone下来的
-git remote add qscs144 URL 
-git add .
-git commit -m
-git push qscs144 master</code></pre></div>
-</li>
-<li><p>配置SSH相关。注意ubuntu启动ssh agent: <code>exec ssh-agent bash</code></p>
-</li>
-</ul>
-<h4 id="正式实验"><a href="#正式实验" class="headerlink" title="正式实验"></a>正式实验</h4><h5 id="webget-cc"><a href="#webget-cc" class="headerlink" title="webget.cc"></a>webget.cc</h5><p>我们的目标是实现<code>void get_URL(const string &amp;host, const string &amp;path)</code>函数。</p>
-<p>具体来说：</p>
+              <hr>
+<p>这次实验我们需要完成一个子串重组的类。因为我们的数据包被TCP Sender分割成很多的segments。我们需要在receiver处将其重组成完整的byte stream。</p>
+<p>首先，我们需要考虑大体上数据结构以及算法：</p>
 <ul>
-<li><p>理解基本的socket编程</p>
-</li>
-<li><p>阅读sponge库 知道对应的接口</p>
-</li>
+<li>substring到来随机，我们需要将其插入合适的位置。因此需要插入性能较好的结构。考虑到可能与前后的子串重合，因此需要方便地得到前后子串。</li>
+<li>考虑到插入，那么树形结构比较合适。我们知道每个substring的index，因此可以据此进行排序。</li>
+<li>考虑使用set。我们需要构建一个structure并且自定义如何比较以及排序方式。set支持双向迭代器，因此插入之后可以得到前后的元素进行操作。</li>
 </ul>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">get_URL</span><span class="hljs-params">(<span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> &amp;host, <span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> &amp;path)</span> </span>&#123;
-    TCPSocket soct;
-    soct.<span class="hljs-built_in">connect</span>(Address(host, <span class="hljs-string">"http"</span>));
-    <span class="hljs-keyword">const</span> <span class="hljs-built_in">string</span> httpDatagram = <span class="hljs-string">"GET "</span> + path + <span class="hljs-string">" HTTP/1.1\r\n"</span> + 
-                                <span class="hljs-string">"Host: "</span> + host + <span class="hljs-string">"\r\n\r\n"</span>;
-    soct.<span class="hljs-built_in">write</span>(httpDatagram);
-    soct.<span class="hljs-built_in">shutdown</span>(SHUT_WR);
-    <span class="hljs-keyword">while</span>(!soct.eof())
-        <span class="hljs-built_in">cout</span>&lt;&lt;soct.<span class="hljs-built_in">read</span>();
-    soct.<span class="hljs-built_in">close</span>();
-    <span class="hljs-keyword">return</span>;
-&#125;</code></pre></div>
-<p><img src="https://i.loli.net/2021/02/01/jRvxaIM3UEVYmbc.png" srcset="/img/loading.gif" alt="image-20210201182035652" style="zoom:67%;" /></p>
-<p><img src="https://i.loli.net/2021/02/01/ihq8ZB2t4op5dcu.png" srcset="/img/loading.gif" alt="image-20210201182059748" style="zoom:67%;" /></p>
-<h5 id="an-in-memory-reliable-byte-stream"><a href="#an-in-memory-reliable-byte-stream" class="headerlink" title="an in-memory reliable byte stream"></a>an in-memory reliable byte stream</h5><p>在上面的实验中我们可以看到socket提供给用户的感觉就是能够将字节可靠地通过网络在主机之间进行交互。这里我们需要实现一个单线程的、位于内存的byte stream。</p>
-<p>要求：</p>
+<p>其次，如何去重？这里我们不需要考虑什么字符串匹配算法，因为我们知道index信息，根据前面元素的index以及长度结合当前元素的index就可以知道是否重合及其相应的处理方式。</p>
+<p>另外，对于capacity的理解：</p>
 <ul>
-<li>有序 FIFO</li>
-<li>初始化时固定容量</li>
-<li>控制输入操作</li>
+<li>我们有一个byte stream用于存储接收到并且组装好的segments。另外还有部分容量用于存储不与byte stream连续的子串。一旦连续自然也需要写入byte stream</li>
 </ul>
-<p>如何实现？思路：</p>
+<p>因此，push_substring的算法如下：</p>
 <ul>
-<li>最初根据FIFO第一反应是直接使用<code>queue</code>。但是我们<code>read/write</code>的对象都是<code>string</code>，而且有时需要根据字节长度去读取，因此使用<code>queue</code>比较麻烦——需要不断地去遍历得到指定长度的<code>string</code></li>
-<li>直接使用一个<code>string</code>对象？所有的操作直接在这个对象上进行。感觉比较方便。</li>
+<li><p>首先判断substring能否被接收：</p>
+<ul>
+<li><p>是否处于当前可接收index range。为了记录当前byte stream中起始substring的index，参考指导书上的示意图，需要<strong>first_unread/first_unassembled/first_unacceptable</strong></p>
+</li>
+<li><p>如果在first_unassembled和first_unacceptable之间，那么考虑是否需要将其插入——因为可能已经有了其位置。因此使用set方法查找最后一个小于等于其index的substring，记为a，其后的元素记为b，当前待处理的记为c。根据c与a/b是否重合有四种情况，分别处理即可。</p>
+</li>
 </ul>
-<blockquote>
-<p><code>string</code>与字符、字节之间的关系</p>
-</blockquote>
-<p>具体代码比较简单。</p>
-<h4 id="关于构建"><a href="#关于构建" class="headerlink" title="关于构建"></a>关于构建</h4><ul>
-<li><p>注意，这里我们必须列表初始化成员：</p>
-<blockquote>
-<p>‘ByteStream::_BStream’ should be initialized in the member initialization list [-Werror=effc++]</p>
-</blockquote>
+</li>
+<li><p>如果first_unassembled恰好是byte stream之后的string，那么需要将连续的字节插入。我们考虑实现一个方法，就是将连续的字节全部写入byte stream。</p>
 </li>
 </ul>
 
@@ -304,18 +264,12 @@ git push qscs144 master</code></pre></div>
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/02/06/CS144-02-Lab1/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">CS144-02-Lab1</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/01/27/MIT6-828-02-Lab1/">
-                        <span class="hidden-mobile">MIT6.828-02-Lab1</span>
+                      <a href="/2021/01/30/CS144-01-Lab0/">
+                        <span class="hidden-mobile">CS144-01-Lab0</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -454,7 +408,7 @@ git push qscs144 master</code></pre></div>
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "CS144-01-Lab0&nbsp;",
+        "CS144-02-Lab1&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

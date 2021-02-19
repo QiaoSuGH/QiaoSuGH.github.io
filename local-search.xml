@@ -4,6 +4,35 @@
   
   
   <entry>
+    <title>CS144-02-Lab1</title>
+    <link href="/2021/02/06/CS144-02-Lab1/"/>
+    <url>/2021/02/06/CS144-02-Lab1/</url>
+    
+    <content type="html"><![CDATA[<hr><p>这次实验我们需要完成一个子串重组的类。因为我们的数据包被TCP Sender分割成很多的segments。我们需要在receiver处将其重组成完整的byte stream。</p><p>首先，我们需要考虑大体上数据结构以及算法：</p><ul><li>substring到来随机，我们需要将其插入合适的位置。因此需要插入性能较好的结构。考虑到可能与前后的子串重合，因此需要方便地得到前后子串。</li><li>考虑到插入，那么树形结构比较合适。我们知道每个substring的index，因此可以据此进行排序。</li><li>考虑使用set。我们需要构建一个structure并且自定义如何比较以及排序方式。set支持双向迭代器，因此插入之后可以得到前后的元素进行操作。</li></ul><p>其次，如何去重？这里我们不需要考虑什么字符串匹配算法，因为我们知道index信息，根据前面元素的index以及长度结合当前元素的index就可以知道是否重合及其相应的处理方式。</p><p>另外，对于capacity的理解：</p><ul><li>我们有一个byte stream用于存储接收到并且组装好的segments。另外还有部分容量用于存储不与byte stream连续的子串。一旦连续自然也需要写入byte stream</li></ul><p>因此，push_substring的算法如下：</p><ul><li><p>首先判断substring能否被接收：</p><ul><li><p>是否处于当前可接收index range。为了记录当前byte stream中起始substring的index，参考指导书上的示意图，需要<strong>first_unread/first_unassembled/first_unacceptable</strong></p></li><li><p>如果在first_unassembled和first_unacceptable之间，那么考虑是否需要将其插入——因为可能已经有了其位置。因此使用set方法查找最后一个小于等于其index的substring，记为a，其后的元素记为b，当前待处理的记为c。根据c与a/b是否重合有四种情况，分别处理即可。</p></li></ul></li><li><p>如果first_unassembled恰好是byte stream之后的string，那么需要将连续的字节插入。我们考虑实现一个方法，就是将连续的字节全部写入byte stream。</p></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>计算机网络</category>
+      
+      <category>CS144</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>计算机网络</tag>
+      
+      <tag>CS144</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>CS144-01-Lab0</title>
     <link href="/2021/01/30/CS144-01-Lab0/"/>
     <url>/2021/01/30/CS144-01-Lab0/</url>
@@ -37,7 +66,7 @@
     <link href="/2021/01/27/MIT6-828-02-Lab1/"/>
     <url>/2021/01/27/MIT6-828-02-Lab1/</url>
     
-    <content type="html"><![CDATA[<h4 id="Part1-PC-Bootstrap"><a href="#Part1-PC-Bootstrap" class="headerlink" title="Part1: PC Bootstrap"></a>Part1: PC Bootstrap</h4><h5 id="熟悉x86汇编"><a href="#熟悉x86汇编" class="headerlink" title="熟悉x86汇编"></a>熟悉x86汇编</h5><ul><li><p><a href="https://www.ibm.com/developerworks/cn/linux/l-assembly/" target="_blank" rel="noopener">https://www.ibm.com/developerworks/cn/linux/l-assembly/</a> 介绍了Linux环境下基本的AT&amp;T风格的汇编</p><p>在编写<code>hello.s</code>之后<code>as -o hello.o hello.s</code>提示：</p><blockquote><p>hello.s: Assembler messages:<br>hello.s: Warning: end of file not at end of a line; newline inserted</p></blockquote><p>在<code>hello.s</code>末尾添加新行即可。<strong>WHY</strong></p><p>另外介绍了inline assembly的基本用法，有点好玩，GCC的支持使得我们可以直接在C语言中直接写汇编。</p></li><li><p><a href="https://pdos.csail.mit.edu/6.828/2018/readings/i386/toc.htm" target="_blank" rel="noopener">80386 Programmer’s Reference Manual</a> 包括从基本的计算机组成到x86 assembly，1.2介绍了历史发展，可以与操作系统的知识结合在一起：从段式分配到页式分配。另外appendix里面包括了80x86 instructions，比较方便。</p></li></ul><h5 id="启动过程"><a href="#启动过程" class="headerlink" title="启动过程"></a>启动过程</h5><ul><li><p><strong>Exercise 2</strong>： Use GDB’s si (Step Instruction) command to trace into the ROM BIOS for a few more instructions, and try to guess what it might be doing.</p><p>首先我们想知道电脑启动的整体过程。<a href="https://medium.com/an-idea/the-not-so-magic-of-how-your-computer-boots-up-2f5e8289451d" target="_blank" rel="noopener">这篇文章介绍了大致过程</a> </p><p>其次使用<code>si</code>去看具体执行了那些命令。<strong>TODO这里由于不懂汇编没看懂具体过程</strong></p></li></ul><h4 id="Part2-The-Boot-Loader"><a href="#Part2-The-Boot-Loader" class="headerlink" title="Part2: The Boot Loader"></a>Part2: The Boot Loader</h4><ul><li><p><img src="https://i.loli.net/2021/01/30/vEmgqHpltSQM5CA.png" srcset="/img/loading.gif" alt="image-20210130160415527"></p><p>上图中，左边是使用GDB单步执行的过程，右边是boot.S。</p></li></ul><h5 id="理解boot-loader-source-code"><a href="#理解boot-loader-source-code" class="headerlink" title="理解boot loader source code"></a>理解boot loader source code</h5>]]></content>
+    <content type="html"><![CDATA[<h4 id="Part1-PC-Bootstrap"><a href="#Part1-PC-Bootstrap" class="headerlink" title="Part1: PC Bootstrap"></a>Part1: PC Bootstrap</h4><h5 id="熟悉x86汇编"><a href="#熟悉x86汇编" class="headerlink" title="熟悉x86汇编"></a>熟悉x86汇编</h5><ul><li><p><a href="https://www.ibm.com/developerworks/cn/linux/l-assembly/" target="_blank" rel="noopener">https://www.ibm.com/developerworks/cn/linux/l-assembly/</a> 介绍了Linux环境下基本的AT&amp;T风格的汇编</p><p>在编写<code>hello.s</code>之后<code>as -o hello.o hello.s</code>提示：</p><blockquote><p>hello.s: Assembler messages:<br>hello.s: Warning: end of file not at end of a line; newline inserted</p></blockquote><p>在<code>hello.s</code>末尾添加新行即可。<strong>WHY</strong></p><p>另外介绍了inline assembly的基本用法，有点好玩，GCC的支持使得我们可以直接在C语言中直接写汇编。</p></li><li><p><a href="https://pdos.csail.mit.edu/6.828/2018/readings/i386/toc.htm" target="_blank" rel="noopener">80386 Programmer’s Reference Manual</a> 包括从基本的计算机组成到x86 assembly，1.2介绍了历史发展，可以与操作系统的知识结合在一起：从段式分配到页式分配。另外appendix里面包括了80x86 instructions，比较方便。</p></li></ul><h5 id="启动过程"><a href="#启动过程" class="headerlink" title="启动过程"></a>启动过程</h5><ul><li><p><strong>Exercise 2</strong>： Use GDB’s si (Step Instruction) command to trace into the ROM BIOS for a few more instructions, and try to guess what it might be doing.</p><p>首先我们想知道电脑启动的整体过程。<a href="https://medium.com/an-idea/the-not-so-magic-of-how-your-computer-boots-up-2f5e8289451d" target="_blank" rel="noopener">这篇文章介绍了大致过程</a> </p><p>其次使用<code>si</code>去看具体执行了那些命令。</p></li></ul><h4 id="Part2-The-Boot-Loader"><a href="#Part2-The-Boot-Loader" class="headerlink" title="Part2: The Boot Loader"></a>Part2: The Boot Loader</h4><ul><li><p><img src="https://i.loli.net/2021/01/30/vEmgqHpltSQM5CA.png" srcset="/img/loading.gif" alt="image-20210130160415527"></p><p>上图中，左边是使用GDB单步执行的过程，右边是boot.S。</p></li></ul><h5 id="理解boot-loader-source-code"><a href="#理解boot-loader-source-code" class="headerlink" title="理解boot loader source code"></a>理解boot loader source code</h5>]]></content>
     
     
     <categories>
