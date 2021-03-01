@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      539 字
+      618 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      5
+      6
        分钟
     </span>
   
@@ -217,17 +217,18 @@
 <ul>
 <li>我们有一个byte stream用于存储接收到并且组装好的segments。另外还有部分容量用于存储不与byte stream连续的子串。一旦连续自然也需要写入byte stream</li>
 </ul>
-<p>因此，push_substring的算法如下：</p>
+<p>因此，<code>push_substring</code>的算法如下：</p>
 <ul>
-<li><p>首先判断substring能否被接收：</p>
+<li><p>首先判断<code>substring</code>能否被接收：</p>
 <ul>
-<li><p>是否处于当前可接收index range。为了记录当前byte stream中起始substring的index，参考指导书上的示意图，需要<strong>first_unread/first_unassembled/first_unacceptable</strong></p>
+<li><p>是否处于当前可接收index range。参考指导书上的示意图，需要<code>first_unread/first_unassembled/first_unacceptable</code></p>
 </li>
-<li><p>如果在first_unassembled和first_unacceptable之间，那么考虑是否需要将其插入——因为可能已经有了其位置。因此使用set方法查找最后一个小于等于其index的substring，记为a，其后的元素记为b，当前待处理的记为c。根据c与a/b是否重合有四种情况，分别处理即可。</p>
+<li><p>如果在<code>first_unassembled</code>和<code>first_unacceptable</code>之间，那么考虑是否需要将其插入——因为可能已经有了其位置。我们可以判断是否已经存在，如果是，我们考虑将其与已存在的进行比较，如果当前的比已存在的更长，那么进行替换，并且还需要遍历之后的node判断是否需要去除重叠部分。</p>
 </li>
+<li>我们不断地往后遍历，如果部分重叠，那么合并至前段，删除当前段，结束；否则直接合并至前段。</li>
 </ul>
 </li>
-<li><p>如果first_unassembled恰好是byte stream之后的string，那么需要将连续的字节插入。我们考虑实现一个方法，就是将连续的字节全部写入byte stream。</p>
+<li><p>如果并不存在，那么需要直接插入。插入之后仍然是需要处理可能重叠的部分。这里和上面的处理是十分类似的。我们首先单独处理其与可能存在的前面元素的重叠，然后从该位置开始，直接调用上面的函数即可。</p>
 </li>
 </ul>
 
