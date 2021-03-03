@@ -4,11 +4,40 @@
   
   
   <entry>
+    <title>CS144-03-Lab2</title>
+    <link href="/2021/03/03/CS144-03-Lab2/"/>
+    <url>/2021/03/03/CS144-03-Lab2/</url>
+    
+    <content type="html"><![CDATA[]]></content>
+    
+    
+    <categories>
+      
+      <category>计算机网络</category>
+      
+      <category>CS144</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>计算机网络</tag>
+      
+      <tag>CS144</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>CS144-02-Lab1</title>
     <link href="/2021/02/06/CS144-02-Lab1/"/>
     <url>/2021/02/06/CS144-02-Lab1/</url>
     
-    <content type="html"><![CDATA[<hr><p>这次实验我们需要完成一个子串重组的类。因为我们的数据包被TCP Sender分割成很多的segments。我们需要在receiver处将其重组成完整的byte stream。</p><p>首先，我们需要考虑大体上数据结构以及算法：</p><ul><li>substring到来随机，我们需要将其插入合适的位置。因此需要插入性能较好的结构。考虑到可能与前后的子串重合，因此需要方便地得到前后子串。</li><li>考虑到插入，那么树形结构比较合适。我们知道每个substring的index，因此可以据此进行排序。</li><li>考虑使用set。我们需要构建一个structure并且自定义如何比较以及排序方式。set支持双向迭代器，因此插入之后可以得到前后的元素进行操作。</li></ul><p>其次，如何去重？这里我们不需要考虑什么字符串匹配算法，因为我们知道index信息，根据前面元素的index以及长度结合当前元素的index就可以知道是否重合及其相应的处理方式。</p><p>另外，对于capacity的理解：</p><ul><li>我们有一个byte stream用于存储接收到并且组装好的segments。另外还有部分容量用于存储不与byte stream连续的子串。一旦连续自然也需要写入byte stream</li></ul><p>因此，<code>push_substring</code>的算法如下：</p><ul><li><p>首先判断<code>substring</code>能否被接收：</p><ul><li><p>是否处于当前可接收index range。参考指导书上的示意图，需要<code>first_unread/first_unassembled/first_unacceptable</code></p></li><li><p>如果在<code>first_unassembled</code>和<code>first_unacceptable</code>之间，那么考虑是否需要将其插入——因为可能已经有了其位置。我们可以判断是否已经存在，如果是，我们考虑将其与已存在的进行比较，如果当前的比已存在的更长，那么进行替换，并且还需要遍历之后的node判断是否需要去除重叠部分。</p></li><li>我们不断地往后遍历，如果部分重叠，那么合并至前段，删除当前段，结束；否则直接合并至前段。</li></ul></li><li><p>如果并不存在，那么需要直接插入。插入之后仍然是需要处理可能重叠的部分。这里和上面的处理是十分类似的。我们首先单独处理其与可能存在的前面元素的重叠，然后从该位置开始，直接调用上面的函数即可。</p></li></ul>]]></content>
+    <content type="html"><![CDATA[<hr><p>这次实验我们需要完成一个子串重组的类。因为我们的数据包被TCP Sender分割成很多的segments。我们需要在receiver处将其重组成完整的byte-stream。</p><p>首先，我们需要考虑大体上数据结构以及算法：</p><ul><li>substring到来随机，我们需要将其插入合适的位置。因此需要插入性能较好的结构。考虑到可能与前后的子串重合，因此需要方便地得到前后子串。</li><li>考虑到插入，那么树形结构比较合适。我们知道每个substring的index，因此可以据此进行排序。</li><li>考虑使用set。我们需要构建一个structure并且自定义如何比较以及排序方式。set支持双向迭代器，因此插入之后可以得到前后的元素进行操作。</li></ul><p>其次，如何去重？这里我们不需要考虑什么字符串匹配算法，因为我们知道index信息，根据前面元素的index以及长度结合当前元素的index就可以知道是否重合及其相应的处理方式。</p><p>另外，对于capacity的理解：</p><ul><li><p>我们有一个byte-stream——<code>_output</code>用于存储接收到并且组装好的segments。另外还有部分容量用于存储不与<code>_output</code>连续的子串。一旦连续自然也需要写入<code>_output</code></p></li><li><p>指导书上面的示意图：</p><p><img src="https://i.loli.net/2021/03/02/YLDScgfaBIdWiAw.png" srcset="/img/loading.gif" alt="image-20210302194203433"></p></li></ul><p>我们考虑一下index各种可能的情况：</p><ul><li>处于first unacceptable之后 那么直接丢弃</li><li>处于first unread之前 有可能其延申一直到first unassembled之后 仍然需要处理</li><li>处于first unread和first unassembled之间 同上 需要处理</li><li>处于first unassembled和first unacceptable之间 自然需要处理</li></ul><p>其中2/3两种情况本质是一样的，因为绿色部分已经完成，所以我们只需要截取first unassembled及其之后的部分即可。 继续这样的思路，我们应该先进行预处理、得到红色部分需要插入的substring再进行插入。当然，超出first unacceptable之后的就直接截断。</p><p>如何实现？</p><ul><li>我们必须记录<code>first_unread--_first_unread</code>。根据<code>_output.buffer_size()</code>便可以得到<code>first_unassembled</code>。</li></ul><p>现在，我们已经得到的需要插入的结构体了。</p><p>我们首先需要找到插入的位置——<code>lower_bound</code>返回第一个大于等于index的元素，之后不断尝试合并即可——这里我们考虑构建一个函数用于合并两个结构体。而且并不仅仅考虑后面的元素，<code>lower_bound</code>返回结果之前的可能也会产生重叠，需要判断。</p><p>更具体来说，如何设计这个函数？有很多种可能的方式：</p><ul><li>传入<code>set&lt;node&gt;::iterator</code>，根据迭代器得到元素进而进行比较，如果重叠那么修改待插入的结构体，删除<code>iterator</code>指向的结构体；<ul><li>我们是在函数内部删除还是在调用处删除？</li><li><a href="https://stackoverflow.com/questions/9726375/stdset-iterator-automatically-const" target="_blank" rel="noopener">https://stackoverflow.com/questions/9726375/stdset-iterator-automatically-const</a></li></ul></li><li>我们首先插入，然后直接修改<code>set&lt;node&gt;</code>。这样有一个弊端就是，我们并不能直接插入，因为可能存在相同的<code>index</code>——我们需要额外处理，但是如果只是处理这个相同<code>index</code>的元素那么在插入之后仍然需要与后续元素进行比较、处理，代码比较冗余；</li><li>注意如果能够合并，那么显然会影响<code>_unassembled_bytes</code>，如何实现？直接在内部修改还是传回返回值然后修改？</li></ul><p>其实除了上述的<code>set</code>方法之外，可能直接使用一个<code>string</code>也是可以的。我们可能需要一个<code>vector&lt;bool&gt;</code>进行标记<code>string</code>每一位是否是由<code>substring</code>占据。这样的好处是我们不需要比较繁琐的判断重叠、合并的操作，我们直接去填充<code>string</code>然后将标记为置为<code>true</code>即可。当然一开始为了保险起见用了<code>set</code>，写的过程当中就觉得<code>string</code>应该方便很多。</p><p>现在我们已经完成了讲个基本的数据结构——<code>byte_stream</code>和<code>stream_assembler</code>。目前尚未真正涉及TCP协议本身的内容，感觉像是完成了两道CSP模拟题。</p>]]></content>
     
     
     <categories>
