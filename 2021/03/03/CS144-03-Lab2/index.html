@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.1k 字
+      1.4k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      12
+      17
        分钟
     </span>
   
@@ -205,7 +205,6 @@
             
             <article class="markdown-body">
               <hr>
-<hr>
 <p>读完《TCP/IP详解 卷一：协议》CH12之后对于指导书中的图有了大致的理解，包括TCP头部各个字段的含义。</p>
 <p>TCP接收方需要告诉发送方两方面的信息：</p>
 <ul>
@@ -217,17 +216,27 @@
 <h4 id="Translating-between-64-bit-indexes-and-32-bit-seqnos"><a href="#Translating-between-64-bit-indexes-and-32-bit-seqnos" class="headerlink" title="Translating between 64-bit indexes and 32-bit seqnos"></a>Translating between 64-bit indexes and 32-bit seqnos</h4><p>我们有三种序列：</p>
 <ul>
 <li>在TCP传输中标志每个字节的序列号，从ISN开始，32位</li>
-<li>将上者变为从0开始</li>
+<li>absolute seqno 将上者变为从0开始</li>
 <li>stream中每个字节的序列号，即真正传输的数据的序列号</li>
 </ul>
 <p><img src="https://i.loli.net/2021/03/04/d3xwi5Pqo87GaAE.png" srcset="/img/loading.gif" alt="image-20210304175138487" style="zoom: 67%;" /></p>
 <p>我们首先需要完成<code>WrappingInt32</code>类——对uint32_t进行封装，从而使其与uint64_t转换更加方便。</p>
-<p>从seqence number 向absolute sequence number转换：</p>
+<h5 id="wrap"><a href="#wrap" class="headerlink" title="wrap"></a><code>wrap</code></h5><p>很显然，我们取出<code>uint64_t n</code>的低32位，然后与<code>ISN</code>相加即可。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function">WrappingInt32 <span class="hljs-title">wrap</span><span class="hljs-params">(<span class="hljs-keyword">uint64_t</span> n, WrappingInt32 isn)</span> </span>&#123;
+   <span class="hljs-keyword">return</span> WrappingInt32(<span class="hljs-keyword">uint32_t</span>(n &amp; <span class="hljs-number">0x00000000FFFFFFFF</span>) + isn.raw_value());
+&#125;</code></pre></div>
+<h5 id="unwrap"><a href="#unwrap" class="headerlink" title="unwrap"></a><code>unwrap</code></h5><p>从seqence number 向absolute sequence number转换：</p>
 <ul>
-<li><p>很显然这种转换不是唯一的——sn每次增加$2^{32}$值都不变，但是asq变化。为了确定唯一的结果，我们需要<code>checkpoint</code>，即将可能的结果中距离<code>checkpoint</code>最近的作为最终结果。</p>
+<li><p>很显然这种转换不是唯一的——seqno每次增加$2^{32}$值都不变，但是absolute seqno变化。为了确定唯一的结果，我们需要<code>checkpoint</code>，即将可能的结果中距离<code>checkpoint</code>最近的作为最终结果。</p>
 </li>
-<li><p>虽然我们可以循环增加，找到比<code>checkpoint</code>小、大的两个结果，然后比较距离。但是这样比较麻烦。我们尝试直接找出两者。因为较小者高32位肯定与<code>checkpoint</code>一致，然后低32位即为sq，这样在增加$2^{32}$之后恰好越过<code>checkpoint</code>。</p>
-<p>所以直接求出两者然后比较距离即可。 </p>
+<li><p><del>我们知道这里<code>checkpoint</code>实际上是last reassembled bytes，那么新来的segment对应的seqno转换成absolute seqno之后应当大于<code>checkpoint</code>。</del>我们知道这里<code>checkpoint</code>实际上是last reassembled bytes，那么新来的segment对应的seqno转换成absolute seqno之后应当大于<code>checkpoint</code>。所以如果我们知道<code>checkpoint</code>最少增加多少就变成答案即可。答案记作<code>ans</code>，那么如果我们将<code>checkpoint</code>转换成32位的seqno，记作<code>cp_seqno</code>，那么实际上从<code>cp_seqno</code>走到<code>n</code>与<code>checkpoint</code>走到<code>ans</code>距离应该是一样的。</p>
+<p><del>如何得到这个距离？如果<code>n - cp_seqno &gt;= 0</code>，那么是正常的；如果<code>n - cp_seqno &lt; 0</code>，那么说明其实是从<code>cp_seqno</code>继续增长、溢出$2^{32}-1$从0开始，所以我们需要将<code>n</code>加上$2^{32}$。</del></p>
+<p>写完发现报错了。马上想到，新来的segment的seqno在整个stream中未必是在<code>checkpoint</code>之后，也有可能在之前——会导致被抛弃，这是合理的。所以有可能比<code>checkpoint</code>小。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">uint64_t</span> <span class="hljs-title">unwrap</span><span class="hljs-params">(WrappingInt32 n, WrappingInt32 isn, <span class="hljs-keyword">uint64_t</span> checkpoint)</span> </span>&#123;
+  <span class="hljs-keyword">int32_t</span> tmp = n - wrap(checkpoint, isn);
+  <span class="hljs-keyword">int64_t</span> ans = checkpoint + tmp;
+  <span class="hljs-keyword">return</span> ans &gt;= <span class="hljs-number">0</span> ? ans : ans + (<span class="hljs-number">1u</span>l &lt;&lt; <span class="hljs-number">32</span>);
+&#125;</code></pre></div>
 </li>
 </ul>
 <h4 id="Implementing-the-TCP-receiver"><a href="#Implementing-the-TCP-receiver" class="headerlink" title="Implementing the TCP receiver"></a>Implementing the TCP receiver</h4><h5 id="关于TCP"><a href="#关于TCP" class="headerlink" title="关于TCP"></a>关于TCP</h5><p>首先有一个问题，为什么SYN 也需要一个序列号？序列号存在的意义有两方面：</p>
@@ -267,14 +276,16 @@
 <blockquote>
 <p><a href="https://en.cppreference.com/w/cpp/utility/optional" target="_blank" rel="noopener">https://en.cppreference.com/w/cpp/utility/optional</a></p>
 </blockquote>
-<h5 id="segment-received的细节"><a href="#segment-received的细节" class="headerlink" title="segment_received的细节"></a><code>segment_received</code>的细节</h5><p>首先是对于<code>SYN</code>和<code>FIN</code>的处理：如果已经接收到了，那么丢弃后续到来的。所以我们需要私有成员记录是否已经结束。</p>
-<p>并且注意<code>tcp_segment</code> class 里面<code>length_in_sequence_space</code>的定义：</p>
+<h5 id="segment-received的思路与细节"><a href="#segment-received的思路与细节" class="headerlink" title="segment_received的思路与细节"></a><code>segment_received</code>的思路与细节</h5><p>首先是对于<code>SYN</code>和<code>FIN</code>的处理：如果已经接收到了，那么丢弃后续到来的。所以我们需要私有成员记录是否已经结束。</p>
+<p>并且<code>SYN</code>同样可以有data，甚至也是<code>FIN</code>。</p>
+<p>关键在于<code>push_substring</code>中<code>index</code>的处理，一直当作absolute sequence number，但是注意在第一部分已经给出了之间的关系——<strong>Stream Indices</strong>。</p>
+<p>其次注意<code>tcp_segment</code> class 里面<code>length_in_sequence_space</code>的定义：</p>
 <blockquote>
 <p>Equal to payload length plus one byte if SYN is set, plus one byte if FIN is set</p>
 </blockquote>
-<p>另外是<code>checkpoint</code>的设置。</p>
-<p><img src="https://i.loli.net/2021/03/05/GjBcvnXZ8HlOpRw.png" srcset="/img/loading.gif" alt="image-20210305154819025" style="zoom:67%;" /></p>
-<p>在SYN 到来之后，从逻辑上来看，</p>
+<h5 id="ackno-实现"><a href="#ackno-实现" class="headerlink" title="ackno()实现"></a><code>ackno()</code>实现</h5><blockquote>
+<p>Returns anoptional<WrappingInt32>containing the sequence number of the first byte that the receiver doesn’t already know.  This is the windows’s left edge:  the first byte the receiveris interested in receiving.  If the ISN hasn’t been set yet, return an empty optional.</p>
+</blockquote>
 
             </article>
             <hr>
