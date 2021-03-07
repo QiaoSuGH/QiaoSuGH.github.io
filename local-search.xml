@@ -4,6 +4,64 @@
   
   
   <entry>
+    <title>High Performance Mysql [Notes]</title>
+    <link href="/2021/03/07/High%20Performance%20Mysql%20%5BNotes%5D/"/>
+    <url>/2021/03/07/High%20Performance%20Mysql%20%5BNotes%5D/</url>
+    
+    <content type="html"><![CDATA[<h3 id="ch1-Mysql-Architecture-and-History"><a href="#ch1-Mysql-Architecture-and-History" class="headerlink" title="ch1 Mysql Architecture and History"></a>ch1 Mysql Architecture and History</h3><h4 id="事务"><a href="#事务" class="headerlink" title="事务"></a>事务</h4><h5 id="隔离级别"><a href="#隔离级别" class="headerlink" title="隔离级别"></a>隔离级别</h5><ul><li><p>ACID属性</p></li><li><p>隔离性的四个级别</p><ul><li><p>关于nonrepeatedable read</p><blockquote><p>…a transaction T2 could change the value of an object A that has been read by a transaction T1, while T1 is still in progress. If T1 tries to read the value of A again, it will get a different result, even though it has not modified A in the meantime… —<em>Database Management Systems</em></p></blockquote></li></ul></li></ul><h5 id="死锁"><a href="#死锁" class="headerlink" title="死锁"></a>死锁</h5>]]></content>
+    
+    
+    <categories>
+      
+      <category>数据库</category>
+      
+      <category>Mysql</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>数据库</tag>
+      
+      <tag>Mysql</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>CS144-04-Lab3.md</title>
+    <link href="/2021/03/07/CS144-04-Lab3-md/"/>
+    <url>/2021/03/07/CS144-04-Lab3-md/</url>
+    
+    <content type="html"><![CDATA[<hr><h5 id="为什么需要随机的ISN"><a href="#为什么需要随机的ISN" class="headerlink" title="为什么需要随机的ISN"></a>为什么需要随机的ISN</h5><p><a href="https://www.quora.com/Why-in-a-TCP-sequence-is-a-number-taken-as-a-random-number-and-what-is-the-actual-number-at-the-start" target="_blank" rel="noopener">https://www.quora.com/Why-in-a-TCP-sequence-is-a-number-taken-as-a-random-number-and-what-is-the-actual-number-at-the-start</a></p><p><a href="https://www.techrepublic.com/article/tcp-hijacking/" target="_blank" rel="noopener">https://www.techrepublic.com/article/tcp-hijacking/</a></p><p><a href="https://pdos.csail.mit.edu/~rtm/papers/117.pdf" target="_blank" rel="noopener">https://pdos.csail.mit.edu/~rtm/papers/117.pdf</a></p><p>主要是与一些攻击方式有关系。具体的原理尚未明白。</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>计算机网络</category>
+      
+      <category>CS144</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>计算机网络</tag>
+      
+      <tag>CS144</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>CS144-03-Lab2</title>
     <link href="/2021/03/03/CS144-03-Lab2/"/>
     <url>/2021/03/03/CS144-03-Lab2/</url>
