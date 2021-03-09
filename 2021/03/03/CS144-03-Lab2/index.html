@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.4k 字
+      1.9k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      17
+      24
        分钟
     </span>
   
@@ -276,16 +276,59 @@
 <blockquote>
 <p><a href="https://en.cppreference.com/w/cpp/utility/optional" target="_blank" rel="noopener">https://en.cppreference.com/w/cpp/utility/optional</a></p>
 </blockquote>
-<h5 id="segment-received的思路与细节"><a href="#segment-received的思路与细节" class="headerlink" title="segment_received的思路与细节"></a><code>segment_received</code>的思路与细节</h5><p>首先是对于<code>SYN</code>和<code>FIN</code>的处理：如果已经接收到了，那么丢弃后续到来的。所以我们需要私有成员记录是否已经结束。</p>
-<p>并且<code>SYN</code>同样可以有data，甚至也是<code>FIN</code>。</p>
-<p>关键在于<code>push_substring</code>中<code>index</code>的处理，一直当作absolute sequence number，但是注意在第一部分已经给出了之间的关系——<strong>Stream Indices</strong>。</p>
-<p>其次注意<code>tcp_segment</code> class 里面<code>length_in_sequence_space</code>的定义：</p>
+<h5 id="segment-received的思路与细节"><a href="#segment-received的思路与细节" class="headerlink" title="segment_received的思路与细节"></a><code>segment_received</code>的思路与细节</h5><p>原本的思路过于简陋，存在很多bug。后续通过test修补了很多。</p>
+<p><strong>debug：</strong></p>
+<p>在<code>FIN = true</code>时，我们以为直接<code>push_substring</code>，由于<code>EOF = true</code>会使得重组器的<code>ByteTream _output</code>结束输入。但是事实上并没有——<code>_output</code>的输入结束必须是不存在unreassembled_segs。</p>
+<p>回顾实验一中<code>push_substring</code>的定义：</p>
 <blockquote>
-<p>Equal to payload length plus one byte if SYN is set, plus one byte if FIN is set</p>
+<p><code>eof</code>: the last byte of this substring will be the last byte in the entire stream</p>
 </blockquote>
+<p>也就是说，<code>eof = true</code>仅仅说明当前的substring是最后的字符串。这是很符合实际的，由于网络延迟的存在，后续到来的substring可能是在该substring之前，我们当然应该将其reassembled而不是拒绝输入。</p>
+<p>在<code>reassembled_bytes</code>中，我们的逻辑是这样的：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">if</span>(eof)_eof = <span class="hljs-literal">true</span>;
+<span class="hljs-keyword">if</span>(_eof &amp;&amp; empty())_output.end_input();</code></pre></div>
+<p>现在，我们在<code>FIN</code>之后到来的segment<strong>应该能够</strong>让<code>_output</code>结束输入。上面的逻辑是可以处理的。</p>
+<p>排查发现<code>segment_received</code>里面多了第一行：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">if</span>(_has_fin)<span class="hljs-keyword">return</span>;</code></pre></div>
+<p>显然，并不能这样处理。删除之后即可。</p>
 <h5 id="ackno-实现"><a href="#ackno-实现" class="headerlink" title="ackno()实现"></a><code>ackno()</code>实现</h5><blockquote>
 <p>Returns anoptional<WrappingInt32>containing the sequence number of the first byte that the receiver doesn’t already know.  This is the windows’s left edge:  the first byte the receiveris interested in receiving.  If the ISN hasn’t been set yet, return an empty optional.</p>
 </blockquote>
+<p>初始版本：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function">optional&lt;WrappingInt32&gt; <span class="hljs-title">TCPReceiver::ackno</span><span class="hljs-params">()</span> <span class="hljs-keyword">const</span> </span>&#123;
+    <span class="hljs-keyword">if</span>(_has_syn)&#123;
+        <span class="hljs-keyword">size_t</span> tmp = <span class="hljs-number">1</span>;
+        <span class="hljs-comment">//firstly get the absolute sequence number </span>
+            <span class="hljs-comment">//normally just add 1 but if fin add 2 </span>
+        <span class="hljs-comment">//then using wrap -- translating the asn to sq</span>
+        <span class="hljs-keyword">if</span>(_has_fin &amp;&amp; _reassembler.unassembled_bytes() == <span class="hljs-number">0</span>)tmp = <span class="hljs-number">2</span>;
+        <span class="hljs-keyword">return</span> wrap(_reassembler.stream_out().bytes_written() + tmp, _ISN_peer);
+    &#125;
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">return</span> <span class="hljs-built_in">std</span>::nullopt;
+&#125;</code></pre></div>
+<p>注释：</p>
+<p>因为我们需要返回的是absolute seqno，因此是在stream index基础上增加一。而且需要考虑，如果<code>FIN</code>已经到达并且没有unassembled bytes，那么我们需要对<code>FIN</code>进行确认。当然，如果还存在unassembled bytes，那么ackno并不需要特别处理。</p>
+<p><strong>报错：</strong></p>
+<blockquote>
+<p>Failure message:<br>        The TCPReceiver reported ackno <code>6</code>, but it was expected to be <code>7</code></p>
+<p>List of steps that executed successfully:<br>        Initialized with (capacity=4000)<br>        Action:      segment arrives Header(flags=SF,seqno=5,ack=0,win=0)<br>        Expectation: in state <code>input to stream has ended</code></p>
+</blockquote>
+<p>test case如下：</p>
+<p><img src="https://i.loli.net/2021/03/09/Cy3UPoYOX1i5eSu.png" srcset="/img/loading.gif" alt="image-20210309105109752"></p>
+<p>结合<code>segment_received</code>代码可以确定，由于没有设置<code>_has_fin = true</code>导致<code>ackno</code>错误。</p>
+<p><strong>报错：</strong></p>
+<blockquote>
+<p>Failure message:<br>        The TCPReceiver reported ackno <code>3836842352</code>, but it was expected to be <code>3836842365</code></p>
+<p>List of steps that executed successfully:<br>        Initialized with (capacity=4000)<br>        Expectation: in state <code>waiting for SYN: ackno is empty</code><br>        Action:      segment arrives Header(flags=S,seqno=3836842351,ack=0,win=0) with data “Hello, CS144!”<br>        Expectation: in state <code>SYN received (ackno exists), and input to stream hasn&#39;t ended</code></p>
+</blockquote>
+<p>返回的<code>ackno</code>错误。可能的原因包括：</p>
+<ul>
+<li><code>bytes_written</code>错误，导致返回了错误的结果</li>
+<li><code>segment_received</code>错误，即插入时设置的index错误，或者其他逻辑错误，导致<code>bytes_written</code>错误</li>
+<li><code>wrap</code>用法错误</li>
+</ul>
+<p>通过在<code>ackno</code>函数中打印<code>bytes_written</code>得知其错误，输出值一直是0。</p>
+<p>通过对比special case：SYN with data 和<code>segment_receive</code>，可以确认逻辑错误：此时得到的<code>abs_seqno</code>错误。增加对包含数据时SYN的特判即可。</p>
 
             </article>
             <hr>
