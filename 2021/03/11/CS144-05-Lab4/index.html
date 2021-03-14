@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      0 字
+      423 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      4
        分钟
     </span>
   
@@ -204,7 +204,67 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              
+              <blockquote>
+<p>We’d discourage you from trying to read the test source code, unless it is as a last resort</p>
+</blockquote>
+<p>看来还是不要测试驱动开发了。</p>
+<hr>
+<p>总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：</p>
+<ul>
+<li>receiver<ul>
+<li>接收segment，根据SYN/FIN/seqno等信息决定舍弃与否，如果接收那么放入reassembler的一个实例</li>
+<li>返回期望接收的第一个byte的seqno</li>
+</ul>
+</li>
+<li>sender<ul>
+<li>根据接收到的window_size以及ackno来发送bytes</li>
+<li>记录了连续重传的相关信息，可以用来判断是否应该断开连接</li>
+<li>重要的逻辑是计时器相关，什么时候开/关/之后的行为</li>
+</ul>
+</li>
+</ul>
+<p>而在实验四，我们需要完成<code>tcp_connection</code>，即包括receiver and sender。因为TCP是全双工的，连接的一方既会接收也会发送。我们首先考虑一下两者之间的联系：</p>
+<ul>
+<li>receiver接收到的seg里面可能包括ackno/window_size，需要反馈给sender</li>
+<li>receiver接收到SYN/FIN/reset信息</li>
+</ul>
+<hr>
+<h5 id="remaining-outbound-capacity"><a href="#remaining-outbound-capacity" class="headerlink" title="remaining_outbound_capacity()"></a>remaining_outbound_capacity()</h5><p>注意，我们的connection供上层调用，sender用来发送bytes，调用者希望知道还能发送多少bytes——sender中<code>ByteSream _stream</code>的剩余容量。</p>
+<hr>
+<p>完成了几个normal functions，接下来仔细阅读FAQs。</p>
+<ul>
+<li><p>为什么connection也有一个<code>_segments_out</code>。但是sender不是有一个<code>_segments_out</code>吗</p>
+<ul>
+<li>注意在sender中我们并没有真正的发送——只是将segments放入到了<code>_segment_out</code> 当中。那么connection的实现需要我们将  sender的<code>_segments_out</code>传到connection的<code>_segments_out</code>。</li>
+</ul>
+</li>
+<li><p>关于RST</p>
+<ul>
+<li>收到了怎么办</li>
+<li><p>什么情况应该发送</p>
+</li>
+<li><p>如何在不侵入sender的情况下完成发送？</p>
+</li>
+</ul>
+</li>
+<li><p>ACK</p>
+<ul>
+<li>发送时的设置</li>
+<li>接收segment时判断</li>
+</ul>
+</li>
+<li><p>结束connection</p>
+<ul>
+<li>unclean</li>
+<li>clean</li>
+</ul>
+</li>
+</ul>
+<h5 id="write"><a href="#write" class="headerlink" title="write"></a>write</h5><ul>
+<li>将data写入sender的ByteStream中</li>
+<li>将sender的_segments_out pop掉</li>
+</ul>
+
             </article>
             <hr>
             <div>
