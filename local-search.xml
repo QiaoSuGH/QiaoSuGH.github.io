@@ -4,11 +4,49 @@
   
   
   <entry>
+    <title>Go-03-多线程下载器</title>
+    <link href="/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/"/>
+    <url>/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/</url>
+    
+    <content type="html"><![CDATA[]]></content>
+    
+    
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>Go-02-实现B+树</title>
+    <link href="/2021/03/16/Go-02-%E5%AE%9E%E7%8E%B0B-%E6%A0%91/"/>
+    <url>/2021/03/16/Go-02-%E5%AE%9E%E7%8E%B0B-%E6%A0%91/</url>
+    
+    <content type="html"><![CDATA[<hr><h5 id="B-树的基本原理"><a href="#B-树的基本原理" class="headerlink" title="B+树的基本原理"></a>B+树的基本原理</h5><ul><li><p>二叉查找树，可能变成链表，导致效率非常低。</p></li><li><p>平衡二叉树AVL，通过限制节点左右子树的层级差不大于1从而确保二叉树的搜索效率</p></li><li>B树：在平衡二叉树的基础上增加每个节点的key的数目<ul><li>对于m阶B树(m &gt;= 2)，非叶子节点的子节点数目[2, m]，枝节点的key数量在[ceil(m/2)-1, m-1]，叶子节点均位于同一层</li><li>查找：原理就是不断二分</li><li>插入：直接插入叶子节点；可能会导致叶子节点key数量超出限制，需要拆分。循环：将节点的中心key插入到父节点，原本节点的左右两段分别属于key的左右；直到没有节点超出限制。</li><li>删除：如果待删除key位于非叶子节点，通过后续节点替换的方式确保最终需要删除的节点位于叶子节点；删除之后可能数量不够<ul><li>如果兄弟节点数量大于ceil(m/2)-1，那么借用</li><li>否则将父节点的key与当前节点、兄弟节点进行合并</li></ul></li></ul></li><li>B+树<ul><li>定义：MySql当中非叶子节点的key数量等同于子节点数量。另外一种定义就是子节点数量要多1。注意根节点也可以是叶子节点。</li><li>与B树相比，重要的区别在于只有叶子节点才存储了data，而非叶子节点则只存储了索引。因此带来了插入删除的变化。</li></ul></li></ul><h5 id="B-树在工程中的应用"><a href="#B-树在工程中的应用" class="headerlink" title="B+树在工程中的应用"></a>B+树在工程中的应用</h5><p>Mysql的InnoDB存储引擎使用了B+树。</p><ul><li>对于聚集索引——将主键作为B+树的key，叶子节点存储真正的数据。每个节点大小刚好对应磁盘的一页，每次根据指向子节点的指针从磁盘中读取下一页。注意根节点所在的页常驻内存。同时节点之间双向连接，叶子节点中的数据单向连接。使得范围查询也很简单：在查找范围的左边界之后，沿着链表走即可。</li><li>对于非聚集索引，B+树的key是非主键的列值，数据则是主键。这样我们根据非主键的列进行查找时，首先找到对应的主键，再在聚集索引中寻找到真正的数据。</li></ul><p>为什么使用B+树而非B树？</p><ul><li>磁盘访问速度很慢，因此需要尽量减少磁盘的访问次数。同时磁盘的访问以块为单位。<ul><li>数据库中页的概念</li><li>为什么一个节点对应一个扇区？</li></ul></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>Go</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Go</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Go-01-GMP模型</title>
     <link href="/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/"/>
     <url>/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/</url>
     
-    <content type="html"><![CDATA[<h5 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h5><ul><li><p><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86" target="_blank" rel="noopener">https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86</a></p><p>《Go语言设计与实现》</p></li></ul><h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul><li>P中存在着一个本地队列以及<code>runnext guintptr</code>，用于M获取runable的G。M首先要与P绑定，然后不断地获取G去执行。</li><li>获取过程：<ul><li>如果M绑定的P为空，那么前往全局队列尝试获取G<ul><li>如果全局队列仍然为空，那么work-stealing</li><li>如果一直没有G，那么进入idle状态</li></ul></li></ul></li><li>执行过程：<ul><li>如果G因为systemcall而阻塞，那么M被阻塞，P与M解绑，尝试重新绑定到一个idle的M或者新建一个M</li><li>如果G因为channel阻塞，那么G会被放到某个等待队列，M会尝试获取下一个G—G2。当原本的G被唤醒时，会被加入到P的<code>runnext</code>。如果M没有获取到G，那么解绑并sleep。</li><li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。</li></ul></li></ul><h5 id="设计原理"><a href="#设计原理" class="headerlink" title="设计原理"></a>设计原理</h5><p>很早版本的单线程调度器已经有了G和M，下面是切换G时保存状态的代码：</p><div class="hljs"><pre><code class="hljs assembly">TEXT gosave(SB), 7, $0MOVQ8(SP), AX&#x2F;&#x2F; gobufMOVQSP, 0(AX)&#x2F;&#x2F; save SPMOVQ0(SP), BXMOVQBX, 8(AX)&#x2F;&#x2F; save PCMOVL$0, AX&#x2F;&#x2F; return 0RET</code></pre></div>]]></content>
+    <content type="html"><![CDATA[<h5 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h5><ul><li><p><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86" target="_blank" rel="noopener">https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86</a></p><p>《Go语言设计与实现》</p></li><li><p><a href="https://juejin.cn/post/6886321367604527112" target="_blank" rel="noopener">https://juejin.cn/post/6886321367604527112</a> </p></li></ul><h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul><li>P中存在着一个本地队列以及<code>runnext guintptr</code>，用于M获取runable的G。M首先要与P绑定，然后不断地获取G去执行。</li><li>获取过程：<ul><li>如果M绑定的P为空，那么前往全局队列尝试获取G<ul><li>如果全局队列仍然为空，那么work-stealing</li><li>如果一直没有G，那么进入idle状态</li></ul></li></ul></li><li>执行过程：<ul><li>如果G因为systemcall而阻塞，那么M被阻塞，P与M解绑，尝试重新绑定到一个idle的M或者新建一个M</li><li>如果G因为channel阻塞，那么G会被放到某个等待队列，M会尝试获取下一个G—G2。当原本的G被唤醒时，会被加入到P的<code>runnext</code>。如果M没有获取到G，那么解绑并sleep。</li><li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。</li></ul></li></ul><h5 id="设计原理"><a href="#设计原理" class="headerlink" title="设计原理"></a>设计原理</h5><p>很早版本的单线程调度器已经有了G和M，下面是切换G时保存状态的代码：</p><div class="hljs"><pre><code class="hljs assembly">TEXT gosave(SB), 7, $0MOVQ8(SP), AX&#x2F;&#x2F; gobufMOVQSP, 0(AX)&#x2F;&#x2F; save SPMOVQ0(SP), BXMOVQBX, 8(AX)&#x2F;&#x2F; save PCMOVL$0, AX&#x2F;&#x2F; return 0RET</code></pre></div>]]></content>
     
     
     <categories>
