@@ -4,6 +4,60 @@
   
   
   <entry>
+    <title>Go-01-GMP模型</title>
+    <link href="/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/"/>
+    <url>/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/</url>
+    
+    <content type="html"><![CDATA[<h5 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h5><ul><li><p><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86" target="_blank" rel="noopener">https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86</a></p><p>《Go语言设计与实现》</p></li></ul><h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul><li>P中存在着一个本地队列以及<code>runnext guintptr</code>，用于M获取runable的G。M首先要与P绑定，然后不断地获取G去执行。</li><li>获取过程：<ul><li>如果M绑定的P为空，那么前往全局队列尝试获取G<ul><li>如果全局队列仍然为空，那么work-stealing</li><li>如果一直没有G，那么进入idle状态</li></ul></li></ul></li><li>执行过程：<ul><li>如果G因为systemcall而阻塞，那么M被阻塞，P与M解绑，尝试重新绑定到一个idle的M或者新建一个M</li><li>如果G因为channel阻塞，那么G会被放到某个等待队列，M会尝试获取下一个G—G2。当原本的G被唤醒时，会被加入到P的<code>runnext</code>。如果M没有获取到G，那么解绑并sleep。</li><li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。</li></ul></li></ul><h5 id="设计原理"><a href="#设计原理" class="headerlink" title="设计原理"></a>设计原理</h5><p>很早版本的单线程调度器已经有了G和M，下面是切换G时保存状态的代码：</p><div class="hljs"><pre><code class="hljs assembly">TEXT gosave(SB), 7, $0MOVQ8(SP), AX&#x2F;&#x2F; gobufMOVQSP, 0(AX)&#x2F;&#x2F; save SPMOVQ0(SP), BXMOVQBX, 8(AX)&#x2F;&#x2F; save PCMOVL$0, AX&#x2F;&#x2F; return 0RET</code></pre></div>]]></content>
+    
+    
+    <categories>
+      
+      <category>Go</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Go</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
+    <title>Nachos-01-线程管理</title>
+    <link href="/2021/03/15/Nachos-01-%E7%BA%BF%E7%A8%8B%E7%AE%A1%E7%90%86/"/>
+    <url>/2021/03/15/Nachos-01-%E7%BA%BF%E7%A8%8B%E7%AE%A1%E7%90%86/</url>
+    
+    <content type="html"><![CDATA[<hr><p>在学操作系统的时候就有很多疑惑：</p><ul><li>上下文切换细节是什么，硬件软件层面分别做了哪些具体的工作？</li><li>线程的映射模型到底是什么意思？什么是映射？为何需要映射？不同的映射模型到底是如何实现的？</li><li>共享内存是如何实现的？怎么映射到同一块内存——物理的？Linux里面<code>task_struct</code>结构体中拥有指向<code>mm_struct</code>的指针，对<code>mm_struct</code>的理解</li><li>第一个进程是如何创建的？</li></ul><p>……</p><p>产生疑惑的重要原因就在于没有看内核设计、没有看源码，导致都是在一些抽象概念上面游走。所以现在结合Nachos以及Linux内核设计与实现来真正理解OS。当然，并不会逐句分析源码，仅仅分析关键部分。</p><hr><h4 id="线程创建"><a href="#线程创建" class="headerlink" title="线程创建"></a>线程创建</h4><h5 id="main线程的创建"><a href="#main线程的创建" class="headerlink" title="main线程的创建"></a>main线程的创建</h5><p><code>main.cc--&gt;system.cc.Initialize--&gt;currentthread = new Thread(&quot;main&quot;)</code></p><p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个<code>char * debugName</code>，感觉是用来debug的、并没有实际用处。真正执行时我们会用到<code>fork</code>函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p><div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">// We didn't explicitly allocate the current thread we are running in.</span><span class="hljs-comment">// But if it ever tries to give up the CPU, we better have a Thread</span><span class="hljs-comment">// object to save its state. </span>currentThread = <span class="hljs-keyword">new</span> Thread(<span class="hljs-string">"main"</span>);currentThread-&gt;setStatus(RUNNING);</code></pre></div><p>线程内部定义了<code>status stack stack_top machineState</code>等变量。可以看到我们并没有分配栈等资源。</p><p>在分配栈资源的函数里面：</p><div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>Thread::StackAllocate (VoidFunctionPtr func, _int arg)&#123;    <span class="hljs-built_in">stack</span> = (<span class="hljs-keyword">int</span> *) AllocBoundedArray(StackSize * <span class="hljs-keyword">sizeof</span>(_int));<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SNAKE</span>    <span class="hljs-comment">// HP stack works from low addresses to high addresses</span>    stackTop = <span class="hljs-built_in">stack</span> + <span class="hljs-number">16</span>;<span class="hljs-comment">// HP requires 64-byte frame marker</span>    <span class="hljs-built_in">stack</span>[StackSize - <span class="hljs-number">1</span>] = STACK_FENCEPOST;<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span></span>    <span class="hljs-comment">// i386 &amp; MIPS &amp; SPARC &amp; ALPHA stack works from high addresses to low addresses</span><span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SPARC</span>    <span class="hljs-comment">// SPARC stack must contains at least 1 activation record to start with.</span>    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">96</span>;<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span>  <span class="hljs-comment">// HOST_MIPS  || HOST_i386 || HOST_ALPHA</span></span>    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">4</span>;<span class="hljs-comment">// -4 to be on the safe side!</span><span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_i386</span>......</code></pre></div><p>这里首先需要分配内存并返回指向栈底的指针给<code>stack</code>。</p><div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">char</span> * AllocBoundedArray(<span class="hljs-keyword">int</span> <span class="hljs-built_in">size</span>)&#123;    <span class="hljs-keyword">int</span> pgSize = getpagesize();    <span class="hljs-keyword">char</span> *ptr = <span class="hljs-keyword">new</span> <span class="hljs-keyword">char</span>[pgSize * <span class="hljs-number">2</span> + <span class="hljs-built_in">size</span>];    mprotect(ptr, pgSize, <span class="hljs-number">0</span>);    mprotect(ptr + pgSize + <span class="hljs-built_in">size</span>, pgSize, <span class="hljs-number">0</span>);    <span class="hljs-keyword">return</span> ptr + pgSize;&#125;</code></pre></div><ul><li><p>这个<code>mprotect</code>很容易让人想到内存保护中，设置两个寄存器用于访存时比较目标地址判断是否越界。找到定义：</p><div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">//mman.h</span><span class="hljs-comment">/* Change the memory protection of the region starting at ADDR and</span><span class="hljs-comment">   extending LEN bytes to PROT.  Returns 0 if successful, -1 for errors</span><span class="hljs-comment">   (and sets errno).  */</span><span class="hljs-function"><span class="hljs-keyword">extern</span> <span class="hljs-keyword">int</span> <span class="hljs-title">mprotect</span> <span class="hljs-params">(<span class="hljs-keyword">void</span> *__addr, <span class="hljs-keyword">size_t</span> __len, <span class="hljs-keyword">int</span> __prot)</span> __THROW</span>;</code></pre></div></li><li><div class="hljs"><pre><code class="lang-c++"># if defined __USE_MISC || !defined __USE_XOPEN2K/* Return the number of bytes in a page.  This is the system&#39;s page size,   which is not necessarily the same as the hardware page size.  */extern int getpagesize (void)  __THROW __attribute__ ((__const__));</code></pre></div><p>Nachos页大小为128KB，<code>StackSize</code>定义为<code>sizeof(int) * 1024</code>。这里又乘了<code>sizeof(int)</code>。<strong>有点奇怪。</strong>    </p></li></ul><p>注意在线程类里面还有关键的定义：</p><p><img src="https://i.loli.net/2021/03/15/slownGLyqAaH7R8.png" srcset="/img/loading.gif" alt="image-20210315172229189" style="zoom:67%;" /></p><p>这里的<code>AddrSpace *space</code>指向进程的地址空间。暂时不是很明确。</p><h5 id="线程创建、调度、执行入口、终止"><a href="#线程创建、调度、执行入口、终止" class="headerlink" title="线程创建、调度、执行入口、终止"></a>线程创建、调度、执行入口、终止</h5><ul><li><p>首先线程在创建时的状态是<code>JUST_CREATED</code>。之后在调用<code>fork</code>之后分配栈资源，并且将其加入调度器的就绪队列。</p></li><li><p>在分配栈空间时，会设置一些<code>machineState</code>。</p><p><img src="https://i.loli.net/2021/03/15/Yzmw3CdqV4kIZNQ.png" srcset="/img/loading.gif" alt="image-20210315174215941"></p><p>这个<code>ThreadRoot</code>位于<code>switch.s</code>。</p></li><li></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>操作系统</category>
+      
+      <category>Nachos</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>操作系统</tag>
+      
+      <tag>Nachos</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>CS144-05-Lab4</title>
     <link href="/2021/03/11/CS144-05-Lab4/"/>
     <url>/2021/03/11/CS144-05-Lab4/</url>

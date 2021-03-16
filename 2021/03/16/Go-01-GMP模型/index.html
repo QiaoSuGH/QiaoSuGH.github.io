@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>CS144-05-Lab4 - TATOVO&#39;s blog</title>
+  <title>Go-01-GMP模型 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-03-11 13:30">
-      2021年3月11日 下午
+    <time datetime="2021-03-16 14:29">
+      2021年3月16日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      645 字
+      355 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      7
+      4
        分钟
     </span>
   
@@ -204,72 +204,36 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <blockquote>
-<p>We’d discourage you from trying to read the test source code, unless it is as a last resort</p>
-</blockquote>
-<p>看来还是不要测试驱动开发了。</p>
-<hr>
-<p>总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：</p>
-<ul>
-<li>receiver<ul>
-<li>接收segment，根据SYN/FIN/seqno等信息决定舍弃与否，如果接收那么放入reassembler的一个实例</li>
-<li>返回期望接收的第一个byte的seqno</li>
-</ul>
+              <h5 id="参考文档"><a href="#参考文档" class="headerlink" title="参考文档"></a>参考文档</h5><ul>
+<li><p><a href="https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86" target="_blank" rel="noopener">https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86</a></p>
+<p>《Go语言设计与实现》</p>
 </li>
-<li>sender<ul>
-<li>根据接收到的window_size以及ackno来发送bytes</li>
-<li>记录了连续重传的相关信息，可以用来判断是否应该断开连接</li>
-<li>重要的逻辑是计时器相关，什么时候开/关/之后的行为</li>
+</ul>
+<h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul>
+<li>P中存在着一个本地队列以及<code>runnext guintptr</code>，用于M获取runable的G。M首先要与P绑定，然后不断地获取G去执行。</li>
+<li>获取过程：<ul>
+<li>如果M绑定的P为空，那么前往全局队列尝试获取G<ul>
+<li>如果全局队列仍然为空，那么work-stealing</li>
+<li>如果一直没有G，那么进入idle状态</li>
 </ul>
 </li>
 </ul>
-<p>而在实验四，我们需要完成<code>tcp_connection</code>，即包括receiver and sender。因为TCP是全双工的，连接的一方既会接收也会发送。我们首先考虑一下两者之间的联系：</p>
-<ul>
-<li>receiver接收到的seg里面可能包括ackno/window_size，需要反馈给sender</li>
-<li>receiver接收到SYN/FIN/reset信息</li>
-</ul>
-<hr>
-<h5 id="remaining-outbound-capacity"><a href="#remaining-outbound-capacity" class="headerlink" title="remaining_outbound_capacity()"></a>remaining_outbound_capacity()</h5><p>注意，我们的connection供上层调用，sender用来发送bytes，调用者希望知道还能发送多少bytes——sender中<code>ByteSream _stream</code>的剩余容量。</p>
-<hr>
-<h5 id="FAQs"><a href="#FAQs" class="headerlink" title="FAQs"></a>FAQs</h5><p>完成了几个normal functions，接下来仔细阅读FAQs。</p>
-<ul>
-<li><p>为什么connection也有一个<code>_segments_out</code>。但是sender不是有一个<code>_segments_out</code>吗</p>
-<ul>
-<li>注意在sender中我们并没有真正的发送——只是将segments放入到了<code>_segment_out</code> 当中。那么connection的实现需要我们将  sender的<code>_segments_out</code>传到connection的<code>_segments_out</code>。</li>
-<li>这里需要结合那张图：CS144TCPSocket来理解。connection封装了sender/receiver。对于接受来说，首先是connection接受了，然后再传送给receiver。</li>
-</ul>
 </li>
-<li><p>关于RST</p>
-<ul>
-<li>收到了怎么办</li>
-<li><p>什么情况应该发送</p>
-</li>
-<li><p>如何在不侵入sender的情况下完成发送？</p>
-</li>
-</ul>
-</li>
-<li><p>ACK</p>
-<ul>
-<li>发送时的设置</li>
-<li>接收segment时判断</li>
-</ul>
-</li>
-<li><p>结束connection</p>
-<ul>
-<li>unclean</li>
-<li>clean</li>
+<li>执行过程：<ul>
+<li>如果G因为systemcall而阻塞，那么M被阻塞，P与M解绑，尝试重新绑定到一个idle的M或者新建一个M</li>
+<li>如果G因为channel阻塞，那么G会被放到某个等待队列，M会尝试获取下一个G—G2。当原本的G被唤醒时，会被加入到P的<code>runnext</code>。如果M没有获取到G，那么解绑并sleep。</li>
+<li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。</li>
 </ul>
 </li>
 </ul>
-<h5 id="clean-unclean-shutdown"><a href="#clean-unclean-shutdown" class="headerlink" title="clean/unclean shutdown"></a>clean/unclean shutdown</h5><blockquote>
-<p> If the inbound stream ends before theTCPConnectionhas reached EOF on its outbound stream, this variable needs to be set to false</p>
-</blockquote>
-<p>怎么理解？初步的想法是结合<code>TIME_WAIT</code>状态，我们已经发送了FIN并且被ACK了，并且对方发送了FIN我们也进行了ACK，但是这时候我们需要等待一段时间，因为我们的ACK未必被对方接受、对方可能会重传FIN，因此我们需要保持inbound stream open来接收。如果inbound stream已经结束了，那么自然没有等待的必要了。但是是怎么实现重传ACK的？收到FIN之后receiver端就关闭了输入，由connection直接发送？</p>
-<p><code>clean_shutdown</code>任务是在正常的情况下设置<code>_active = false</code>。条件是什么？</p>
-<h5 id="write"><a href="#write" class="headerlink" title="write"></a>write</h5><ul>
-<li>将data写入sender的ByteStream中</li>
-<li>将sender的_segments_out pop掉</li>
-</ul>
+<h5 id="设计原理"><a href="#设计原理" class="headerlink" title="设计原理"></a>设计原理</h5><p>很早版本的单线程调度器已经有了G和M，下面是切换G时保存状态的代码：</p>
+<div class="hljs"><pre><code class="hljs assembly">TEXT gosave(SB), 7, $0
+	MOVQ	8(SP), AX		&#x2F;&#x2F; gobuf
+	MOVQ	SP, 0(AX)		&#x2F;&#x2F; save SP
+	MOVQ	0(SP), BX
+	MOVQ	BX, 8(AX)		&#x2F;&#x2F; save PC
+	MOVL	$0, AX			&#x2F;&#x2F; return 0
+	RET</code></pre></div>
 
             </article>
             <hr>
@@ -279,9 +243,7 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-                    
-                      <a class="hover-with-bg" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CS144/">CS144</a>
+                      <a class="hover-with-bg" href="/categories/Go/">Go</a>
                     
                   </div>
                 
@@ -289,9 +251,7 @@
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-                    
-                      <a class="hover-with-bg" href="/tags/CS144/">CS144</a>
+                      <a class="hover-with-bg" href="/tags/Go/">Go</a>
                     
                   </div>
                 
@@ -304,18 +264,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/03/15/Nachos-01-%E7%BA%BF%E7%A8%8B%E7%AE%A1%E7%90%86/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Nachos-01-线程管理</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/03/07/High%20Performance%20Mysql%20%5BNotes%5D/">
-                        <span class="hidden-mobile">High Performance Mysql [Notes]</span>
+                      <a href="/2021/03/15/Nachos-01-%E7%BA%BF%E7%A8%8B%E7%AE%A1%E7%90%86/">
+                        <span class="hidden-mobile">Nachos-01-线程管理</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -454,7 +408,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "CS144-05-Lab4&nbsp;",
+        "Go-01-GMP模型&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

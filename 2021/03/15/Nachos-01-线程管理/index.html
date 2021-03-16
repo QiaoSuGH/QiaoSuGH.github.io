@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>CS144-05-Lab4 - TATOVO&#39;s blog</title>
+  <title>Nachos-01-线程管理 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-03-11 13:30">
-      2021年3月11日 下午
+    <time datetime="2021-03-15 15:26">
+      2021年3月15日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      645 字
+      769 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      7
+      10
        分钟
     </span>
   
@@ -204,71 +204,82 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <blockquote>
-<p>We’d discourage you from trying to read the test source code, unless it is as a last resort</p>
-</blockquote>
-<p>看来还是不要测试驱动开发了。</p>
+              <hr>
+<p>在学操作系统的时候就有很多疑惑：</p>
+<ul>
+<li>上下文切换细节是什么，硬件软件层面分别做了哪些具体的工作？</li>
+<li>线程的映射模型到底是什么意思？什么是映射？为何需要映射？不同的映射模型到底是如何实现的？</li>
+<li>共享内存是如何实现的？怎么映射到同一块内存——物理的？Linux里面<code>task_struct</code>结构体中拥有指向<code>mm_struct</code>的指针，对<code>mm_struct</code>的理解</li>
+<li>第一个进程是如何创建的？</li>
+</ul>
+<p>……</p>
+<p>产生疑惑的重要原因就在于没有看内核设计、没有看源码，导致都是在一些抽象概念上面游走。所以现在结合Nachos以及Linux内核设计与实现来真正理解OS。当然，并不会逐句分析源码，仅仅分析关键部分。</p>
 <hr>
-<p>总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：</p>
+<h4 id="线程创建"><a href="#线程创建" class="headerlink" title="线程创建"></a>线程创建</h4><h5 id="main线程的创建"><a href="#main线程的创建" class="headerlink" title="main线程的创建"></a>main线程的创建</h5><p><code>main.cc--&gt;system.cc.Initialize--&gt;currentthread = new Thread(&quot;main&quot;)</code></p>
+<p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个<code>char * debugName</code>，感觉是用来debug的、并没有实际用处。真正执行时我们会用到<code>fork</code>函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">// We didn't explicitly allocate the current thread we are running in.</span>
+<span class="hljs-comment">// But if it ever tries to give up the CPU, we better have a Thread</span>
+<span class="hljs-comment">// object to save its state. </span>
+currentThread = <span class="hljs-keyword">new</span> Thread(<span class="hljs-string">"main"</span>);		
+currentThread-&gt;setStatus(RUNNING);</code></pre></div>
+<p>线程内部定义了<code>status stack stack_top machineState</code>等变量。可以看到我们并没有分配栈等资源。</p>
+<p>在分配栈资源的函数里面：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
+Thread::StackAllocate (VoidFunctionPtr func, _int arg)
+&#123;
+    <span class="hljs-built_in">stack</span> = (<span class="hljs-keyword">int</span> *) AllocBoundedArray(StackSize * <span class="hljs-keyword">sizeof</span>(_int));
+
+<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SNAKE</span>
+    <span class="hljs-comment">// HP stack works from low addresses to high addresses</span>
+    stackTop = <span class="hljs-built_in">stack</span> + <span class="hljs-number">16</span>;	<span class="hljs-comment">// HP requires 64-byte frame marker</span>
+    <span class="hljs-built_in">stack</span>[StackSize - <span class="hljs-number">1</span>] = STACK_FENCEPOST;
+<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span></span>
+    <span class="hljs-comment">// i386 &amp; MIPS &amp; SPARC &amp; ALPHA stack works from high addresses to low addresses</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SPARC</span>
+    <span class="hljs-comment">// SPARC stack must contains at least 1 activation record to start with.</span>
+    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">96</span>;
+<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span>  <span class="hljs-comment">// HOST_MIPS  || HOST_i386 || HOST_ALPHA</span></span>
+    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">4</span>;	<span class="hljs-comment">// -4 to be on the safe side!</span>
+<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_i386</span>
+......</code></pre></div>
+<p>这里首先需要分配内存并返回指向栈底的指针给<code>stack</code>。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">char</span> * 
+AllocBoundedArray(<span class="hljs-keyword">int</span> <span class="hljs-built_in">size</span>)
+&#123;
+    <span class="hljs-keyword">int</span> pgSize = getpagesize();
+    <span class="hljs-keyword">char</span> *ptr = <span class="hljs-keyword">new</span> <span class="hljs-keyword">char</span>[pgSize * <span class="hljs-number">2</span> + <span class="hljs-built_in">size</span>];
+
+    mprotect(ptr, pgSize, <span class="hljs-number">0</span>);
+    mprotect(ptr + pgSize + <span class="hljs-built_in">size</span>, pgSize, <span class="hljs-number">0</span>);
+    <span class="hljs-keyword">return</span> ptr + pgSize;
+&#125;</code></pre></div>
 <ul>
-<li>receiver<ul>
-<li>接收segment，根据SYN/FIN/seqno等信息决定舍弃与否，如果接收那么放入reassembler的一个实例</li>
-<li>返回期望接收的第一个byte的seqno</li>
-</ul>
+<li><p>这个<code>mprotect</code>很容易让人想到内存保护中，设置两个寄存器用于访存时比较目标地址判断是否越界。找到定义：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">//mman.h</span>
+<span class="hljs-comment">/* Change the memory protection of the region starting at ADDR and</span>
+<span class="hljs-comment">   extending LEN bytes to PROT.  Returns 0 if successful, -1 for errors</span>
+<span class="hljs-comment">   (and sets errno).  */</span>
+<span class="hljs-function"><span class="hljs-keyword">extern</span> <span class="hljs-keyword">int</span> <span class="hljs-title">mprotect</span> <span class="hljs-params">(<span class="hljs-keyword">void</span> *__addr, <span class="hljs-keyword">size_t</span> __len, <span class="hljs-keyword">int</span> __prot)</span> __THROW</span>;</code></pre></div>
 </li>
-<li>sender<ul>
-<li>根据接收到的window_size以及ackno来发送bytes</li>
-<li>记录了连续重传的相关信息，可以用来判断是否应该断开连接</li>
-<li>重要的逻辑是计时器相关，什么时候开/关/之后的行为</li>
-</ul>
-</li>
-</ul>
-<p>而在实验四，我们需要完成<code>tcp_connection</code>，即包括receiver and sender。因为TCP是全双工的，连接的一方既会接收也会发送。我们首先考虑一下两者之间的联系：</p>
-<ul>
-<li>receiver接收到的seg里面可能包括ackno/window_size，需要反馈给sender</li>
-<li>receiver接收到SYN/FIN/reset信息</li>
-</ul>
-<hr>
-<h5 id="remaining-outbound-capacity"><a href="#remaining-outbound-capacity" class="headerlink" title="remaining_outbound_capacity()"></a>remaining_outbound_capacity()</h5><p>注意，我们的connection供上层调用，sender用来发送bytes，调用者希望知道还能发送多少bytes——sender中<code>ByteSream _stream</code>的剩余容量。</p>
-<hr>
-<h5 id="FAQs"><a href="#FAQs" class="headerlink" title="FAQs"></a>FAQs</h5><p>完成了几个normal functions，接下来仔细阅读FAQs。</p>
-<ul>
-<li><p>为什么connection也有一个<code>_segments_out</code>。但是sender不是有一个<code>_segments_out</code>吗</p>
-<ul>
-<li>注意在sender中我们并没有真正的发送——只是将segments放入到了<code>_segment_out</code> 当中。那么connection的实现需要我们将  sender的<code>_segments_out</code>传到connection的<code>_segments_out</code>。</li>
-<li>这里需要结合那张图：CS144TCPSocket来理解。connection封装了sender/receiver。对于接受来说，首先是connection接受了，然后再传送给receiver。</li>
-</ul>
-</li>
-<li><p>关于RST</p>
-<ul>
-<li>收到了怎么办</li>
-<li><p>什么情况应该发送</p>
-</li>
-<li><p>如何在不侵入sender的情况下完成发送？</p>
+<li><div class="hljs"><pre><code class="lang-c++"># if defined __USE_MISC || !defined __USE_XOPEN2K
+/* Return the number of bytes in a page.  This is the system&#39;s page size,
+   which is not necessarily the same as the hardware page size.  */
+extern int getpagesize (void)  __THROW __attribute__ ((__const__));
+</code></pre></div>
+<p>Nachos页大小为128KB，<code>StackSize</code>定义为<code>sizeof(int) * 1024</code>。这里又乘了<code>sizeof(int)</code>。<strong>有点奇怪。</strong>    </p>
 </li>
 </ul>
+<p>注意在线程类里面还有关键的定义：</p>
+<p><img src="https://i.loli.net/2021/03/15/slownGLyqAaH7R8.png" srcset="/img/loading.gif" alt="image-20210315172229189" style="zoom:67%;" /></p>
+<p>这里的<code>AddrSpace *space</code>指向进程的地址空间。暂时不是很明确。</p>
+<h5 id="线程创建、调度、执行入口、终止"><a href="#线程创建、调度、执行入口、终止" class="headerlink" title="线程创建、调度、执行入口、终止"></a>线程创建、调度、执行入口、终止</h5><ul>
+<li><p>首先线程在创建时的状态是<code>JUST_CREATED</code>。之后在调用<code>fork</code>之后分配栈资源，并且将其加入调度器的就绪队列。</p>
 </li>
-<li><p>ACK</p>
-<ul>
-<li>发送时的设置</li>
-<li>接收segment时判断</li>
-</ul>
+<li><p>在分配栈空间时，会设置一些<code>machineState</code>。</p>
+<p><img src="https://i.loli.net/2021/03/15/Yzmw3CdqV4kIZNQ.png" srcset="/img/loading.gif" alt="image-20210315174215941"></p>
+<p>这个<code>ThreadRoot</code>位于<code>switch.s</code>。</p>
 </li>
-<li><p>结束connection</p>
-<ul>
-<li>unclean</li>
-<li>clean</li>
-</ul>
-</li>
-</ul>
-<h5 id="clean-unclean-shutdown"><a href="#clean-unclean-shutdown" class="headerlink" title="clean/unclean shutdown"></a>clean/unclean shutdown</h5><blockquote>
-<p> If the inbound stream ends before theTCPConnectionhas reached EOF on its outbound stream, this variable needs to be set to false</p>
-</blockquote>
-<p>怎么理解？初步的想法是结合<code>TIME_WAIT</code>状态，我们已经发送了FIN并且被ACK了，并且对方发送了FIN我们也进行了ACK，但是这时候我们需要等待一段时间，因为我们的ACK未必被对方接受、对方可能会重传FIN，因此我们需要保持inbound stream open来接收。如果inbound stream已经结束了，那么自然没有等待的必要了。但是是怎么实现重传ACK的？收到FIN之后receiver端就关闭了输入，由connection直接发送？</p>
-<p><code>clean_shutdown</code>任务是在正常的情况下设置<code>_active = false</code>。条件是什么？</p>
-<h5 id="write"><a href="#write" class="headerlink" title="write"></a>write</h5><ul>
-<li>将data写入sender的ByteStream中</li>
-<li>将sender的_segments_out pop掉</li>
+<li></li>
 </ul>
 
             </article>
@@ -279,9 +290,9 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
                     
-                      <a class="hover-with-bg" href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CS144/">CS144</a>
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -289,9 +300,9 @@
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
+                      <a class="hover-with-bg" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
                     
-                      <a class="hover-with-bg" href="/tags/CS144/">CS144</a>
+                      <a class="hover-with-bg" href="/tags/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -304,9 +315,9 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/03/15/Nachos-01-%E7%BA%BF%E7%A8%8B%E7%AE%A1%E7%90%86/">
+                      <a href="/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Nachos-01-线程管理</span>
+                        <span class="hidden-mobile">Go-01-GMP模型</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -314,8 +325,8 @@
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/03/07/High%20Performance%20Mysql%20%5BNotes%5D/">
-                        <span class="hidden-mobile">High Performance Mysql [Notes]</span>
+                      <a href="/2021/03/11/CS144-05-Lab4/">
+                        <span class="hidden-mobile">CS144-05-Lab4</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -454,7 +465,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "CS144-05-Lab4&nbsp;",
+        "Nachos-01-线程管理&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,
