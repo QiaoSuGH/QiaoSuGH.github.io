@@ -4,6 +4,31 @@
   
   
   <entry>
+    <title>Go-04-内存管理</title>
+    <link href="/2021/03/18/Go-04-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/"/>
+    <url>/2021/03/18/Go-04-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/</url>
+    
+    <content type="html"><![CDATA[<h5 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h5><p>常见的内存分配方式</p><ul><li>线性分配：无法直接重用已经释放的空闲内存，需要配合特定的GC算法</li><li>空闲链表分配：通过指针构成的链表，分配时需要遍历整个链表。联想起操作系统里面学过的给页分配内存。只不过这里是在堆上进行分配。自然有多种分配算法：First-Fit/Best-Fit……<ul><li>隔离适应策略：分级。每个链表内存块均相同，不同内存块不同。</li></ul></li></ul><p>Go采用多级缓存内存分配</p><ul><li><p>类似于TCmalloc</p></li><li><p>根据申请内存的大小分为三个级别，微对象、小对象、大对象。</p></li><li><p>线程内部有thread cache，上一级是central cache，最高级是page heap。大对象直接在page heap上面分配大内存。</p><ul><li><strong>这里的线程是什么？M？runtime自己创建的M？</strong></li></ul></li></ul><p>在1.10及其之前我们是堆区的内存是连续的：分为三个区域，分别是spans/bitmap/arena，其中arena分成了很多的页，每一页8KB。spans区域存储的是指针，指向内存管理单元msapn。arena是真正的堆区，bitmap用于标示哪些被使用了。</p><ul><li>bitmap中一个字节对应着arena中的32字节。<strong>4bits标记是否有指针，4bits标记扫描。与GC的关系？</strong></li></ul><p>在1.11开始将堆分成很多的页——稀疏内存。</p><p>注意所有的内存最终都是需要向操作系统申请的。<strong>怎么申请的？返回的是什么？mmap等系统调用？</strong></p><h5 id="内存管理组件"><a href="#内存管理组件" class="headerlink" title="内存管理组件"></a>内存管理组件</h5>]]></content>
+    
+    
+    <categories>
+      
+      <category>Go</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Go</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Go-03-多线程下载器</title>
     <link href="/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/"/>
     <url>/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/</url>
@@ -11,6 +36,18 @@
     <content type="html"><![CDATA[]]></content>
     
     
+    <categories>
+      
+      <category>Go</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>Go</tag>
+      
+    </tags>
     
   </entry>
   
@@ -100,7 +137,7 @@
     <link href="/2021/03/11/CS144-05-Lab4/"/>
     <url>/2021/03/11/CS144-05-Lab4/</url>
     
-    <content type="html"><![CDATA[<blockquote><p>We’d discourage you from trying to read the test source code, unless it is as a last resort</p></blockquote><p>看来还是不要测试驱动开发了。</p><hr><p>总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：</p><ul><li>receiver<ul><li>接收segment，根据SYN/FIN/seqno等信息决定舍弃与否，如果接收那么放入reassembler的一个实例</li><li>返回期望接收的第一个byte的seqno</li></ul></li><li>sender<ul><li>根据接收到的window_size以及ackno来发送bytes</li><li>记录了连续重传的相关信息，可以用来判断是否应该断开连接</li><li>重要的逻辑是计时器相关，什么时候开/关/之后的行为</li></ul></li></ul><p>而在实验四，我们需要完成<code>tcp_connection</code>，即包括receiver and sender。因为TCP是全双工的，连接的一方既会接收也会发送。我们首先考虑一下两者之间的联系：</p><ul><li>receiver接收到的seg里面可能包括ackno/window_size，需要反馈给sender</li><li>receiver接收到SYN/FIN/reset信息</li></ul><hr><h5 id="remaining-outbound-capacity"><a href="#remaining-outbound-capacity" class="headerlink" title="remaining_outbound_capacity()"></a>remaining_outbound_capacity()</h5><p>注意，我们的connection供上层调用，sender用来发送bytes，调用者希望知道还能发送多少bytes——sender中<code>ByteSream _stream</code>的剩余容量。</p><hr><h5 id="FAQs"><a href="#FAQs" class="headerlink" title="FAQs"></a>FAQs</h5><p>完成了几个normal functions，接下来仔细阅读FAQs。</p><ul><li><p>为什么connection也有一个<code>_segments_out</code>。但是sender不是有一个<code>_segments_out</code>吗</p><ul><li>注意在sender中我们并没有真正的发送——只是将segments放入到了<code>_segment_out</code> 当中。那么connection的实现需要我们将  sender的<code>_segments_out</code>传到connection的<code>_segments_out</code>。</li><li>这里需要结合那张图：CS144TCPSocket来理解。connection封装了sender/receiver。对于接受来说，首先是connection接受了，然后再传送给receiver。</li></ul></li><li><p>关于RST</p><ul><li>收到了怎么办</li><li><p>什么情况应该发送</p></li><li><p>如何在不侵入sender的情况下完成发送？</p></li></ul></li><li><p>ACK</p><ul><li>发送时的设置</li><li>接收segment时判断</li></ul></li><li><p>结束connection</p><ul><li>unclean</li><li>clean</li></ul></li></ul><h5 id="clean-unclean-shutdown"><a href="#clean-unclean-shutdown" class="headerlink" title="clean/unclean shutdown"></a>clean/unclean shutdown</h5><blockquote><p> If the inbound stream ends before theTCPConnectionhas reached EOF on its outbound stream, this variable needs to be set to false</p></blockquote><p>怎么理解？初步的想法是结合<code>TIME_WAIT</code>状态，我们已经发送了FIN并且被ACK了，并且对方发送了FIN我们也进行了ACK，但是这时候我们需要等待一段时间，因为我们的ACK未必被对方接受、对方可能会重传FIN，因此我们需要保持inbound stream open来接收。如果inbound stream已经结束了，那么自然没有等待的必要了。但是是怎么实现重传ACK的？收到FIN之后receiver端就关闭了输入，由connection直接发送？</p><p><code>clean_shutdown</code>任务是在正常的情况下设置<code>_active = false</code>。条件是什么？</p><h5 id="write"><a href="#write" class="headerlink" title="write"></a>write</h5><ul><li>将data写入sender的ByteStream中</li><li>将sender的_segments_out pop掉</li></ul>]]></content>
+    <content type="html"><![CDATA[<blockquote><p>We’d discourage you from trying to read the test source code, unless it is as a last resort</p></blockquote><p>看来还是不要测试驱动开发了。</p><hr><h5 id="回顾"><a href="#回顾" class="headerlink" title="回顾"></a>回顾</h5><p>总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：</p><ul><li>receiver<ul><li>接收segment，根据SYN/FIN/seqno等信息决定舍弃与否，如果接收那么放入reassembler的一个实例</li><li>返回期望接收的第一个byte的seqno</li></ul></li><li>sender<ul><li>根据接收到的window_size以及ackno来发送bytes</li><li>记录了连续重传的相关信息，可以用来判断是否应该断开连接</li><li>重要的逻辑是计时器相关，什么时候开/关/之后的行为</li></ul></li></ul><p>而在实验四，我们需要完成<code>tcp_connection</code>，即包括receiver and sender。因为TCP是全双工的，连接的一方既会接收也会发送。我们首先考虑一下两者之间的联系：</p><ul><li>receiver接收到的seg里面可能包括ackno/window_size，需要反馈给sender</li><li>receiver接收到SYN/FIN/reset信息</li></ul><hr><h5 id="FAQs"><a href="#FAQs" class="headerlink" title="FAQs"></a>FAQs</h5><p>完成了几个normal functions，接下来仔细阅读FAQs。</p><ul><li><p>为什么connection也有一个<code>_segments_out</code>。但是sender不是有一个<code>_segments_out</code>吗</p><ul><li>注意在sender中我们并没有真正的发送——只是将segments放入到了<code>_segment_out</code> 当中。那么connection的实现需要我们将  sender的<code>_segments_out</code>传到connection的<code>_segments_out</code>。</li><li>这里需要结合那张图：CS144TCPSocket来理解。connection封装了sender/receiver。对于接受来说，首先是connection接受了，然后再传送给receiver。</li></ul></li><li><p>关于RST</p><ul><li>收到了怎么办</li><li><p>什么情况应该发送</p></li><li><p>如何在不侵入sender的情况下完成发送？</p></li></ul></li><li><p>ACK</p><ul><li>发送时的设置</li><li>接收segment时判断</li></ul></li><li><p>结束connection</p><ul><li>unclean</li><li>clean</li></ul></li></ul><h5 id="clean-unclean-shutdown"><a href="#clean-unclean-shutdown" class="headerlink" title="clean/unclean shutdown"></a>clean/unclean shutdown</h5><blockquote><p> If the inbound stream ends before theTCPConnection has reached EOF on its outbound stream, this variable needs to be set to false</p></blockquote><p>不难理解，对于主动关闭，我们发送FIN、收到ACK，然后对方发送FIN，我们返回ACK，这时我们需要等待——即<strong>TIME_WAIT</strong>状态。因为我们返回的ACK可能丢失、对方可能重传，此时等待就有了意义。而对于被动关闭来说，我们收到了FIN，返回ACK，之后如果我们发送了FIN，那么在收到ACK之后便可以直接关闭了——无需等待。很显然，这里被动主动是相对的。</p><p>所以我们什么时候应该clean_shutdown？什么时候应该unclean_shutdown。对于后者应该容易回答：</p><ul><li>重传次数过多</li><li>收到RST</li><li>析构时仍然处于active状态</li></ul><p>注意，双方stream关闭之后延迟一段时间再转为close。</p><p>而对于clean_shutdown，我们必须弄清楚其条件，然后在可能满足条件的地方调用。</p><p>条件：</p><ul><li><p>receiver收到了FIN、关闭inbound stream</p><ul><li><p>如果此时outbount stream尚未关闭 那么说明是passive close，我们无需等待</p></li><li><p>如果outbound stream已经关闭、并且所有bytes均被确认，那么如果不需要等待就直接close，或者超时也close。</p></li></ul></li></ul><p>调用：</p><ul><li>其实很粗暴的方法是每个函数都加上一个，毕竟如果不满足条件也没啥关系。</li><li></li></ul><h5 id="write"><a href="#write" class="headerlink" title="write"></a>write</h5><ul><li>将data写入sender的ByteStream中</li><li>将sender的_segments_out pop掉</li></ul><h5 id="segment-received"><a href="#segment-received" class="headerlink" title="segment_received"></a>segment_received</h5><p>这里需要处理的逻辑比较多。如果处于关闭状态，那么自然不能接受。然后我们需要判断收到的seg的头部的标志位的情况：</p><ul><li>如果是正常的数据包，那么传给receiver同时把ack和window_size传给sender</li><li>如果收到了RST，那么调用<code>unclean_shutdown</code></li><li>如果是SYN，那么其可能并不携带ACK，所以不能直接传给sender<ul><li>如果收到SYN之后再次收到，虽然我们的receiver考虑到了这种逻辑，但是我们应该直接丢弃它</li></ul></li><li></li></ul><h5 id="DEBUG、状态转换"><a href="#DEBUG、状态转换" class="headerlink" title="DEBUG、状态转换"></a>DEBUG、状态转换</h5><p><strong>[01]</strong></p><p><img src="https://i.loli.net/2021/03/17/HJUZnEpyQ9qhkfO.png" srcset="/img/loading.gif" alt="image-20210317160039922" style="zoom:67%;" /></p><p>分析原因：我们在收到了之前发送的SYN的确认之后应该返回ACK，但是我们并没有这样做。通过分析实现中函数的调用过程，我们发现，初始时由于<code>_sender</code>的<code>_stream</code>为空，通过<code>_sender.ack_received</code>调用<code>fill_window</code>并不会真的发送seg。所以增加了这部分逻辑之后没有再出现这个错误。</p><p><strong>[02]</strong></p><p><img src="https://i.loli.net/2021/03/17/b3touBPvFWwhHkN.png" srcset="/img/loading.gif" alt="image-20210317203642020"></p><p>好家伙，重复了三句话，只是告诉我们状态不对、预期状态不是这样。</p><p>继续查看报错的信息，了解到：通过三次握手之后我们已经建立了连接，紧接着我们便主动关闭连接。经过9999ms，我们还没有超时——此时应该处于TIME_WAIT状态，再经过1ms我们便应该关闭了，但是事实上并没有。</p><p>所以还是去看函数的调用过程：在<code>tick</code>函数当中应该调用<code>clean_shutdown</code>。注：发现这点后修改了前面clean_shutdown相关内容。</p><p><strong>[03]</strong></p><p><img src="https://i.loli.net/2021/03/17/HzuNFoby7XYf94P.png" srcset="/img/loading.gif" alt="image-20210317214913957" style="zoom:67%;" /></p><p>上面的信息告诉我们处于<code>LISTEN</code>状态时应该直接拒绝所有的RST。</p><p>而我们的逻辑很粗暴：</p><div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">TCPConnection::segment_received</span><span class="hljs-params">(<span class="hljs-keyword">const</span> TCPSegment &amp;seg)</span> </span>&#123;     <span class="hljs-keyword">if</span>(!_active)<span class="hljs-keyword">return</span>;    <span class="hljs-keyword">if</span>(seg.header().rst)&#123;        unclean_shutdown();        <span class="hljs-keyword">return</span>;    &#125;</code></pre></div><p>所以需要在具体的状态中去修改。</p><p>这个测试位于<code>fsm_active_close</code>，测试状态机的状态转换。所以首先对照着TCP的11种状态，考虑一下能否正常运行而不是去看测试源码。注意在Lab2/3的指导书末尾分别给出了receiver/sender的状态转换图，并给出了相关变量的状态。</p><p>状态转换：</p><ul><li><p>首先sender处于<code>CLOSED</code>状态，receiver处于<code>LISTEN</code>状态。</p><ul><li><p>如果此时调用connect，那么意味着主动发起连接，调用sender的<code>fill_window</code>函数，并且调用<code>send_segs_in_sender()</code>。此时状态应该转换成<code>SYN_SENT</code>。</p><ul><li>如果一直没有收到ACK会怎样？超时重传——调用者调用<code>tick</code>函数。如果重传次数过多那么<code>unclean_shutdown</code></li></ul></li><li><p>如果此时收到了一个seg，我们期望它是SYN，并且<code>connect</code>之后状态变为<code>SYN_SENT</code>和<code>SYN_RECV</code></p><ul><li>不会携带ACK和window_size</li><li>如果不是SYN那么直接丢弃</li><li>我们需要发送自己的SYN，包含了ack——这里sen_segs_in_sender处理是没有问题的。</li></ul></li></ul></li><li><p>在sender处于<code>SYN_SENT</code>并且receiver尚处于<code>LISTEN</code>时，我们期望收到SYN</p><ul><li>如果有data，不符合SYN，丢弃；没有SYN丢弃；</li><li>如果有ACK，那么正常接收——receiver接收，sender调用<code>ack_received</code>。</li><li>如果没有ACK，有可能是因为双方同时尝试建立连接，receiver正常接收，并且sender发送一个空的seg，用于返回ACK。</li></ul></li><li></li></ul>]]></content>
     
     
     <categories>

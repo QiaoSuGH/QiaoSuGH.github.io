@@ -168,6 +168,58 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/03/18/Go-04-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/">Go-04-内存管理</a>
+
+      <a href="/2021/03/18/Go-04-%E5%86%85%E5%AD%98%E7%AE%A1%E7%90%86/" class="index-excerpt">
+        
+        
+          
+        
+        <div>原理常见的内存分配方式
+
+线性分配：无法直接重用已经释放的空闲内存，需要配合特定的GC算法
+空闲链表分配：通过指针构成的链表，分配时需要遍历整个链表。联想起操作系统里面学过的给页分配内存。只不过这里是在堆上进行分配。自然有多种分配算法：First-Fit/Best-Fit……
+隔离适应策略：分级。每个链表内存块均相同，不同内存块不同。
+
+
+
+Go采用多级缓存内存分配
+
+类似于TCmalloc
+
+根</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-03-18
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/">Go-03-多线程下载器</a>
 
       <a href="/2021/03/16/Go-03-%E5%A4%9A%E7%BA%BF%E7%A8%8B%E4%B8%8B%E8%BD%BD%E5%99%A8/" class="index-excerpt">
@@ -185,6 +237,20 @@
           </div>
         
         
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+          </div>
         
       </div>
     </div>
@@ -356,10 +422,10 @@ We’d discourage you from trying to read the test source code, unless it is as 
 
 看来还是不要测试驱动开发了。
 
-总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：
+回顾总结一下之前的实验二和三，我们已经实现了receiver/sender，里面的逻辑已经基本清晰：
 
 receiver
-接收segment，根据SYN/FIN/seqno等信息决定舍</div>
+接收segment，根据SYN/FIN/seqno等信息决</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -560,63 +626,6 @@ substring到来随机，我们需要将其插入合适的位置。因此需要�
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>&nbsp;2021-02-06
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CS144/">CS144</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/tags/CS144/">CS144</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/01/30/CS144-01-Lab0/">CS144-01-Lab0</a>
-
-      <a href="/2021/01/30/CS144-01-Lab0/" class="index-excerpt">
-        
-        
-          
-        
-        <div>环境配置VSCode Remote Development
-随便搜了一些教程，按步骤操作即可。
-
-
-中间自动推荐了C++相关插件，安装即可。
-
-
-Git
-安装
-git config --global user.name "xxx" // user.email "xxx"
-
-关联远程仓库并推送
-git remote -v可以看到已经存在的仓库 因为是从CS144的官方clone下来的
-git rem</div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-01-30
           </div>
         
         
