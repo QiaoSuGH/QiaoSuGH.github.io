@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      421 字
+      846 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      5
+      10
        分钟
     </span>
   
@@ -208,7 +208,55 @@
 <p><a href="https://www.techrepublic.com/article/tcp-hijacking/" target="_blank" rel="noopener">https://www.techrepublic.com/article/tcp-hijacking/</a></p>
 <p><a href="https://pdos.csail.mit.edu/~rtm/papers/117.pdf" target="_blank" rel="noopener">https://pdos.csail.mit.edu/~rtm/papers/117.pdf</a></p>
 <p>主要是与一些攻击方式有关系。具体的原理尚未明白。</p>
-<h4 id="Implementing-the-TCP-Sender"><a href="#Implementing-the-TCP-Sender" class="headerlink" title="Implementing the TCP Sender"></a>Implementing the TCP Sender</h4><h5 id="fill-window"><a href="#fill-window" class="headerlink" title="fill_window"></a><code>fill_window</code></h5><h5 id="debug记录"><a href="#debug记录" class="headerlink" title="debug记录"></a>debug记录</h5><p><code>send_tmtx</code>失败。提示：</p>
+<h4 id="Implementing-the-TCP-Sender"><a href="#Implementing-the-TCP-Sender" class="headerlink" title="Implementing the TCP Sender"></a>Implementing the TCP Sender</h4><h5 id="fill-window"><a href="#fill-window" class="headerlink" title="fill_window"></a><code>fill_window</code></h5><p>如同函数名一样，填充窗口。所以问题的关键在于：</p>
+<ul>
+<li>什么情况不用填充</li>
+<li>什么情况下应该填充<ul>
+<li>窗口大小的设置问题</li>
+</ul>
+</li>
+</ul>
+<p>注意指导书的提示：</p>
+<blockquote>
+<p>TheTCPSender should fill the window again if new space has opened up.</p>
+</blockquote>
+<p>所以实际上在收到ack和win_size之后我们调用<code>fill_window</code>去执行发送。</p>
+<p>首先不用填充的情况：</p>
+<ul>
+<li>没有数据需要发送<ul>
+<li>注意判断<code>eof</code>，因为可能需要发送FIN</li>
+</ul>
+</li>
+<li>发送窗口为0</li>
+<li>已经全部完成发送了</li>
+</ul>
+<p>如何更新窗口设置？这里刚开始想法是错误的，通过debug解决了，见后续<code>sender的窗口如何调整</code>。</p>
+<p>解决上述问题之后逻辑就比较简单了：</p>
+<ul>
+<li><p>判断SYN/FIN是否应该发送以及相应处理。</p>
+</li>
+<li><p>如果还有数据待发送、窗口尚未填满</p>
+<ul>
+<li>选择尽量长的数据单位：剩余窗口、数据、<code>MAX_PAYLOAD_SIZE</code>三者中的最小者。因为实现<code>ByteStream</code>的时候就已经考虑到了<code>read</code>数据多于现存数据的情况，所以这里比较两者即可。</li>
+<li>更新变量，<code>_bytes_in_flight _next_seqno _sender_window_size</code>等。</li>
+<li>注意，初始的窗口容量的设置我放在了<code>ack_received</code>函数当中。</li>
+</ul>
+</li>
+<li>如果我们发送了数据并且计时器尚未启动，那么重启计时器。</li>
+</ul>
+<h5 id="ack-received"><a href="#ack-received" class="headerlink" title="ack_received"></a><code>ack_received</code></h5><p>逻辑并不复杂，主要有以下几点：</p>
+<ul>
+<li>将ack从seqno转换成abs seqno，并且判断是否有效。如果有效那么更新<code>_previous_ackno</code>：用于转换。<ul>
+<li>有效意味着处于上一次ack和_next_seqno之间</li>
+</ul>
+</li>
+<li>将被ack的segments pop掉<ul>
+<li>如果有数据被确认了，那么设置RTO、累计时间、连续重传次数</li>
+</ul>
+</li>
+<li><strong>更新发送端的窗口</strong></li>
+</ul>
+<h5 id="debug记录"><a href="#debug记录" class="headerlink" title="debug记录"></a>debug记录</h5><p><code>send_tmtx</code>失败。提示：</p>
 <blockquote>
 <p>Test Failure on expectation:<br>        Expectation: segment sent with (A=0,R=0,S=1,F=0,seqno=496550203,payload_size=0,…)</p>
 <p>Failure message:<br>        The Sender should have produced a segment that existed, but it did not</p>
@@ -216,8 +264,7 @@
 <p>测试源码如下：</p>
 <p><img src="https://i.loli.net/2021/03/10/hWICFAmzGwptkq1.png" srcset="/img/loading.gif" alt="image-20210310152456694" style="zoom:67%;" /></p>
 <p>即其调用了两次<code>tick</code>，第一次刚好比<code>rt_timeout</code>小1，第二次又增加了1，因此第二次调用之后应该重传。但是本来的实现逻辑中，重传必须：<code>_ms_accumulated &gt; _current_retransmission</code>。改成大于等于即可。</p>
-<p><strong>sender的窗口如何调整？</strong></p>
-<p><code>send_extra</code>失败。在test<code>Don&#39;t add FIN if this would make the segment exceed the receiver&#39;s window</code>处发生错误。经过检查确认了sender窗口的调整是有问题的。本来我们直接使用每次接收到的<code>window_size</code>去更新<code>_sender_window_size</code>。显然这是不正确的。</p>
+<h5 id="sender的窗口如何调整？"><a href="#sender的窗口如何调整？" class="headerlink" title="sender的窗口如何调整？"></a><strong>sender的窗口如何调整？</strong></h5><p><code>send_extra</code>失败。在test<code>Don&#39;t add FIN if this would make the segment exceed the receiver&#39;s window</code>处发生错误。经过检查确认了sender窗口的调整是有问题的。本来我们直接使用每次接收到的<code>window_size</code>去更新<code>_sender_window_size</code>。显然这是不正确的。</p>
 <p>我们必须明确<code>_sender_window_size</code>的含义是：从<code>_next_seqno</code>开始，在abs seqno表示的stream中，接收端会接收的bytes的abs seqno的范围。那么在receiver处，其希望接收的范围是[ackno, ackno + window_size)。对比一下，显然是[_next_seqno, ackno + window_size)。所以<code>_sender_window_size = ackno + window_size - _next_seqno</code>。（ackno如果比 _next_seqno大那么直接舍弃）</p>
 <p><strong>为什么receiver 返回window_size = 0时应该将window_size视为1？</strong></p>
 <p><img src="https://i.loli.net/2021/03/11/erLhKXyD6cFIosA.png" srcset="/img/loading.gif" alt="image-20210311132440348"></p>

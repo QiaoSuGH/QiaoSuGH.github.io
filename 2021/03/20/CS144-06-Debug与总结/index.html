@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>CS144-06-Debug与总结 - TATOVO&#39;s blog</title>
+  <title>CS144-06-性能优化与总结 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      264 字
+      0 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      2
+      1
        分钟
     </span>
   
@@ -204,17 +204,7 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="DEBUG"><a href="#DEBUG" class="headerlink" title="DEBUG"></a>DEBUG</h4><p>目前的情况是<code>make check_lab4</code>有两到三个test会失败，还有几个会超时，说明仍然是存在bug的。而且失败的test并不是固定的，是在真实的通信过程中出现了问题。</p>
-<p><img src="https://i.loli.net/2021/03/20/ZxgEwN4lkC2o3dz.png" srcset="/img/loading.gif" alt="image-20210320121930811" style="zoom:67%;" /></p>
-<p>这个test是在<code>txrx.sh</code>中的，具体怎么测试的不是很理解，应该涉及到shell编程。在<code>spong/build/Testing/LastTest.log</code>中我们可以看到具体传的参数：</p>
-<p><img src="https://i.loli.net/2021/03/20/xrMG1azc7ROIj9E.png" srcset="/img/loading.gif" alt="image-20210320122521015" style="zoom:80%;" /></p>
-<p>我们尝试去调用，发现失败了，提示<code>apps/tcp_ipv4: No sunch file or directory</code>。没有明白怎么回事。</p>
-<hr>
-<p>我们再尝试从逻辑的角度去debug。</p>
-<p>首先是可能存在bug的sender的<code>ack_received</code>，当时写完了并不确定、过了test也就没管了，再来重新梳理一遍。</p>
-<p><del>通过仔细反思<code>fill_window</code>函数，</del></p>
-<p><code>ack_received</code>中计时器的修改有点奇怪。指导书中提到，如果所有的seg都被确认了，那么计时器应该置为false。如果到来的ack确认了一些seg，那么重传时间应该置为初始的，如果还存在未确认的</p>
-
+              
             </article>
             <hr>
             <div>
@@ -398,7 +388,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "CS144-06-Debug与总结&nbsp;",
+        "CS144-06-性能优化与总结&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,
