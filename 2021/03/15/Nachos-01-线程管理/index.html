@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      769 字
+      779 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      10
+      9
        分钟
     </span>
   
@@ -214,72 +214,67 @@
 </ul>
 <p>……</p>
 <p>产生疑惑的重要原因就在于没有看内核设计、没有看源码，导致都是在一些抽象概念上面游走。所以现在结合Nachos以及Linux内核设计与实现来真正理解OS。当然，并不会逐句分析源码，仅仅分析关键部分。</p>
-<hr>
-<h4 id="线程创建"><a href="#线程创建" class="headerlink" title="线程创建"></a>线程创建</h4><h5 id="main线程的创建"><a href="#main线程的创建" class="headerlink" title="main线程的创建"></a>main线程的创建</h5><p><code>main.cc--&gt;system.cc.Initialize--&gt;currentthread = new Thread(&quot;main&quot;)</code></p>
-<p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个<code>char * debugName</code>，感觉是用来debug的、并没有实际用处。真正执行时我们会用到<code>fork</code>函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">// We didn't explicitly allocate the current thread we are running in.</span>
-<span class="hljs-comment">// But if it ever tries to give up the CPU, we better have a Thread</span>
-<span class="hljs-comment">// object to save its state. </span>
-currentThread = <span class="hljs-keyword">new</span> Thread(<span class="hljs-string">"main"</span>);		
+<blockquote>
+<p>以下内容主要围绕参考书的问题</p>
+</blockquote>
+<h5 id="Nachos命令行参数及其处理"><a href="#Nachos命令行参数及其处理" class="headerlink" title="Nachos命令行参数及其处理"></a>Nachos命令行参数及其处理</h5><p>主要是赋给初始化函数，然后处理一些debug相关的设置。</p>
+<h5 id="main线程的创建"><a href="#main线程的创建" class="headerlink" title="main线程的创建"></a>main线程的创建</h5><p><code>main.cc--&gt;system.cc.Initialize--&gt;currentthread = new Thread(&quot;main&quot;)</code></p>
+<p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个<code>char * debugName</code>。真正执行时我们会用到<code>fork</code>函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p>
+<div class="hljs"><pre><code class="hljs c++">currentThread = <span class="hljs-keyword">new</span> Thread(<span class="hljs-string">"main"</span>);		
 currentThread-&gt;setStatus(RUNNING);</code></pre></div>
-<p>线程内部定义了<code>status stack stack_top machineState</code>等变量。可以看到我们并没有分配栈等资源。</p>
-<p>在分配栈资源的函数里面：</p>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
-Thread::StackAllocate (VoidFunctionPtr func, _int arg)
-&#123;
-    <span class="hljs-built_in">stack</span> = (<span class="hljs-keyword">int</span> *) AllocBoundedArray(StackSize * <span class="hljs-keyword">sizeof</span>(_int));
-
-<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SNAKE</span>
-    <span class="hljs-comment">// HP stack works from low addresses to high addresses</span>
-    stackTop = <span class="hljs-built_in">stack</span> + <span class="hljs-number">16</span>;	<span class="hljs-comment">// HP requires 64-byte frame marker</span>
-    <span class="hljs-built_in">stack</span>[StackSize - <span class="hljs-number">1</span>] = STACK_FENCEPOST;
-<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span></span>
-    <span class="hljs-comment">// i386 &amp; MIPS &amp; SPARC &amp; ALPHA stack works from high addresses to low addresses</span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_SPARC</span>
-    <span class="hljs-comment">// SPARC stack must contains at least 1 activation record to start with.</span>
-    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">96</span>;
-<span class="hljs-meta">#<span class="hljs-meta-keyword">else</span>  <span class="hljs-comment">// HOST_MIPS  || HOST_i386 || HOST_ALPHA</span></span>
-    stackTop = <span class="hljs-built_in">stack</span> + StackSize - <span class="hljs-number">4</span>;	<span class="hljs-comment">// -4 to be on the safe side!</span>
-<span class="hljs-meta">#<span class="hljs-meta-keyword">ifdef</span> HOST_i386</span>
-......</code></pre></div>
-<p>这里首先需要分配内存并返回指向栈底的指针给<code>stack</code>。</p>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">char</span> * 
-AllocBoundedArray(<span class="hljs-keyword">int</span> <span class="hljs-built_in">size</span>)
-&#123;
-    <span class="hljs-keyword">int</span> pgSize = getpagesize();
-    <span class="hljs-keyword">char</span> *ptr = <span class="hljs-keyword">new</span> <span class="hljs-keyword">char</span>[pgSize * <span class="hljs-number">2</span> + <span class="hljs-built_in">size</span>];
-
-    mprotect(ptr, pgSize, <span class="hljs-number">0</span>);
-    mprotect(ptr + pgSize + <span class="hljs-built_in">size</span>, pgSize, <span class="hljs-number">0</span>);
-    <span class="hljs-keyword">return</span> ptr + pgSize;
-&#125;</code></pre></div>
+<p>在<code>new Thread</code>之后我们进入了<code>thread</code>类的构造函数，不过目前我们并没有为其分配栈等资源，状态为<code>JUST_CREATED</code>。</p>
+<p><img src="https://i.loli.net/2021/03/24/4VeKdGRlAnYoarp.png" srcset="/img/loading.gif" alt="image-20210324145718373"></p>
+<p>可以看到<strong>main thread的地址为0x56562c60</strong>。</p>
+<p>后续又进行了中断相关的设置，最后完成了初始化的函数。接着就进入下面的函数。</p>
+<h5 id="ThreadTest"><a href="#ThreadTest" class="headerlink" title="ThreadTest"></a><code>ThreadTest</code></h5><ul>
+<li>创建了一个线程，名为“forked thread”：</li>
+</ul>
+<p><img src="https://i.loli.net/2021/03/24/9QsRZCJHBzSdqUM.png" srcset="/img/loading.gif" alt="image-20210324155308502"></p>
+<p>​       <strong>可以看到其地址为0x56562cc0</strong></p>
 <ul>
-<li><p>这个<code>mprotect</code>很容易让人想到内存保护中，设置两个寄存器用于访存时比较目标地址判断是否越界。找到定义：</p>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-comment">//mman.h</span>
-<span class="hljs-comment">/* Change the memory protection of the region starting at ADDR and</span>
-<span class="hljs-comment">   extending LEN bytes to PROT.  Returns 0 if successful, -1 for errors</span>
-<span class="hljs-comment">   (and sets errno).  */</span>
-<span class="hljs-function"><span class="hljs-keyword">extern</span> <span class="hljs-keyword">int</span> <span class="hljs-title">mprotect</span> <span class="hljs-params">(<span class="hljs-keyword">void</span> *__addr, <span class="hljs-keyword">size_t</span> __len, <span class="hljs-keyword">int</span> __prot)</span> __THROW</span>;</code></pre></div>
+<li>接着我们调用<code>Fork</code>，传入了函数<code>simpleThread</code>——循环，每次都会释放CPU的使用权。在<code>Fork</code>成员函数内部为其分配栈空间：<code>StackAllocate(func, arg);</code>。</li>
+</ul>
+<p><img src="https://i.loli.net/2021/03/24/aFJO9gkQxEc4r6n.png" srcset="/img/loading.gif" alt="image-20210324152753095" style="zoom:67%;" /></p>
+<p>​        <strong>继续，我们可以得到：</strong></p>
+<p>​        ThreadRoot ：1448449594</p>
+<p>​        InterruptEnable：1448442119</p>
+<p>​        func：1448442679 16进制：0x56557b37 </p>
+<p>​        arg：1</p>
+<p>​        ThreadFinish：1448442080</p>
+<p>​        完成栈空间的分配以及state的设置之后，我们关闭中断、将当前线程加入readyList，然后再恢复中断。</p>
+<ul>
+<li><p>调用<code>Yield</code>时会发生什么？</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
+Thread::Yield ()
+&#123;
+    Thread *nextThread;
+    IntStatus oldLevel = interrupt-&gt;SetLevel(IntOff);
+    
+    ASSERT(<span class="hljs-keyword">this</span> == currentThread);
+    
+    DEBUG(<span class="hljs-string">'t'</span>, <span class="hljs-string">"Yielding thread \"%s\"\n"</span>, getName());
+    
+    nextThread = scheduler-&gt;FindNextToRun();
+    <span class="hljs-keyword">if</span> (nextThread != <span class="hljs-literal">NULL</span>) &#123;
+	scheduler-&gt;ReadyToRun(<span class="hljs-keyword">this</span>);
+	scheduler-&gt;Run(nextThread);
+    &#125;
+    (<span class="hljs-keyword">void</span>) interrupt-&gt;SetLevel(oldLevel);
+&#125;</code></pre></div>
+<p>可以看到，我们首先关中断，然后确保执行Yield的是当前运行的线程。之后调度器寻找下一个线程，如果存在那么将当前线程加入readyList，运行下一个线程。最后恢复中断。</p>
+<ul>
+<li>如果不存在下一个线程，那么在将其加入ready queue之后调度器应该会再次运行它？</li>
+</ul>
+<p><img src="https://i.loli.net/2021/03/24/cFpaxYX54jRuwzK.png" srcset="/img/loading.gif" alt="image-20210324155350706" style="zoom:67%;" /></p>
+<p>因为目前我们只有主线程和forked thread，所以在主线程执行<code>SimpleTthread(0)</code>之后两者交替运行。</p>
 </li>
-<li><div class="hljs"><pre><code class="lang-c++"># if defined __USE_MISC || !defined __USE_XOPEN2K
-/* Return the number of bytes in a page.  This is the system&#39;s page size,
-   which is not necessarily the same as the hardware page size.  */
-extern int getpagesize (void)  __THROW __attribute__ ((__const__));
-</code></pre></div>
-<p>Nachos页大小为128KB，<code>StackSize</code>定义为<code>sizeof(int) * 1024</code>。这里又乘了<code>sizeof(int)</code>。<strong>有点奇怪。</strong>    </p>
+<li><p>关于<code>SWITCH</code></p>
+<p>在主线程执行<code>Run(nextThread)</code>之后进入<code>Run</code>函数，然后执行<code>SWITCH</code>。</p>
 </li>
 </ul>
-<p>注意在线程类里面还有关键的定义：</p>
-<p><img src="https://i.loli.net/2021/03/15/slownGLyqAaH7R8.png" srcset="/img/loading.gif" alt="image-20210315172229189" style="zoom:67%;" /></p>
-<p>这里的<code>AddrSpace *space</code>指向进程的地址空间。暂时不是很明确。</p>
-<h5 id="线程创建、调度、执行入口、终止"><a href="#线程创建、调度、执行入口、终止" class="headerlink" title="线程创建、调度、执行入口、终止"></a>线程创建、调度、执行入口、终止</h5><ul>
-<li><p>首先线程在创建时的状态是<code>JUST_CREATED</code>。之后在调用<code>fork</code>之后分配栈资源，并且将其加入调度器的就绪队列。</p>
-</li>
-<li><p>在分配栈空间时，会设置一些<code>machineState</code>。</p>
-<p><img src="https://i.loli.net/2021/03/15/Yzmw3CdqV4kIZNQ.png" srcset="/img/loading.gif" alt="image-20210315174215941"></p>
-<p>这个<code>ThreadRoot</code>位于<code>switch.s</code>。</p>
-</li>
-</ul>
+<p>TODO：</p>
+<p>理解汇编代码 反思上面的函数地址的问题</p>
+<p>阅读SWITCH的汇编源码，回答问题</p>
 
             </article>
             <hr>

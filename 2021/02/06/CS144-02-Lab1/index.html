@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.1k 字
+      906 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      11
+      9
        分钟
     </span>
   
@@ -245,11 +245,7 @@
 <li>我们首先插入，然后直接修改<code>set&lt;node&gt;</code>。这样有一个弊端就是，我们并不能直接插入，因为可能存在相同的<code>index</code>——我们需要额外处理，但是如果只是处理这个相同<code>index</code>的元素那么在插入之后仍然需要与后续元素进行比较、处理，代码比较冗余；</li>
 <li>注意如果能够合并，那么显然会影响<code>_unassembled_bytes</code>，如何实现？直接在内部修改还是传回返回值然后修改？</li>
 </ul>
-<p>其实除了上述的<code>set</code>方法之外，可能直接使用一个<code>string</code>也是可以的。我们可能需要一个<code>vector&lt;bool&gt;</code>进行标记<code>string</code>每一位是否是由<code>substring</code>占据。这样的好处是我们不需要比较繁琐的判断重叠、合并的操作，我们直接去填充<code>string</code>然后将标记为置为<code>true</code>即可。当然一开始为了保险起见用了<code>set</code>，写的过程当中就觉得<code>string</code>应该方便很多。</p>
 <p>现在我们已经完成了讲个基本的数据结构——<code>byte_stream</code>和<code>stream_assembler</code>。</p>
-<blockquote>
-<p>目前尚未真正涉及TCP协议本身的内容，感觉像是完成了两道CSP模拟题。</p>
-</blockquote>
 
             </article>
             <hr>

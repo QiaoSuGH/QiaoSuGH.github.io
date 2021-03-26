@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      360 字
+      666 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      4
+      8
        分钟
     </span>
   
@@ -222,9 +222,9 @@
 </ul>
 </li>
 <li>执行过程：<ul>
-<li>如果G因为systemcall而阻塞，那么M被阻塞，P与M解绑，尝试重新绑定到一个idle的M或者新建一个M</li>
-<li>如果G因为channel阻塞，那么G会被放到某个等待队列，M会尝试获取下一个G—G2。当原本的G被唤醒时，会被加入到P的<code>runnext</code>。如果M没有获取到G，那么解绑并sleep。</li>
-<li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。</li>
+<li>如果G因为systemcall而阻塞，那么对应的M也会阻塞。这是M会与P解绑，P会尝试绑定一个休眠的M；如果没有休眠的M但是本地队列中仍然存在G需要执行，那么就去创建一个M。当系统调用完成之后？<strong>ToDo</strong></li>
+<li>如果G因为channel阻塞，那么G会被放到某个等待队列——关于channel的具体实现，M会尝试获取下一个G。当原本的G被唤醒G1时，会被加入到G1所在P的<code>runnext</code>。</li>
+<li>如果没有阻塞，那么M执行完毕之后不会被销毁，而是继续获取G再执行，这样就避免了线程创建销毁带来的开销。获取：首先切换到自身的G: g0，由g0调度一个G然后切换运行。</li>
 </ul>
 </li>
 </ul>
@@ -236,6 +236,53 @@
 	MOVQ	BX, 8(AX)		&#x2F;&#x2F; save PC
 	MOVL	$0, AX			&#x2F;&#x2F; return 0
 	RET</code></pre></div>
+<h5 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h5><ul>
+<li><p>Goroutine就是一个<code>runtime.go</code>的结构体，里面存储了很多数据，包括执行栈、状态、当前占用的线程等等。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> g <span class="hljs-keyword">struct</span> &#123;
+	stack <span class="hljs-keyword">struct</span> &#123;
+		lo <span class="hljs-keyword">uintptr</span>
+		hi <span class="hljs-keyword">uintptr</span>
+	&#125; 							<span class="hljs-comment">// 栈内存：[stack.lo, stack.hi)</span>
+	stackguard0	<span class="hljs-keyword">uintptr</span>
+	stackguard1 <span class="hljs-keyword">uintptr</span>
+
+	_panic       *_panic
+	_defer       *_defer
+	m            *m				<span class="hljs-comment">// 当前的 m</span>
+	sched        gobuf          <span class="hljs-comment">//包括sp/pc等信息 用于切换、恢复上下文</span>
+	stktopsp     <span class="hljs-keyword">uintptr</span>		<span class="hljs-comment">// 期望 sp 位于栈顶，用于回溯检查</span>
+	param        unsafe.Pointer <span class="hljs-comment">// wakeup 唤醒时候传递的参数</span>
+	atomicstatus <span class="hljs-keyword">uint32</span>
+	goid         <span class="hljs-keyword">int64</span>
+	preempt      <span class="hljs-keyword">bool</span>       	<span class="hljs-comment">// 抢占信号，stackguard0 = stackpreempt 的副本</span>
+	timer        *timer         <span class="hljs-comment">// 为 time.Sleep 缓存的计时器</span>
+
+	...
+&#125;</code></pre></div>
+</li>
+<li><p>M对应<code>runtime.m</code>结构体。个数上限为<code>GOMAXPROCS</code>，默认等于核心个数，从而可以减少上下文切换带来的开销。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> m <span class="hljs-keyword">struct</span> &#123;
+	g0   *g 					<span class="hljs-comment">//与运行时调度密切相关</span>
+	curg *g						<span class="hljs-comment">//当前正在执行的G</span>
+	...
+    p             puintptr		<span class="hljs-comment">//当前绑定的P</span>
+	nextp         puintptr		
+	oldp          puintptr
+    ...
+&#125;</code></pre></div>
+</li>
+<li><p>P对应<code>runtime.p</code>结构体。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> p <span class="hljs-keyword">struct</span> &#123;
+	m           muintptr
+
+	runqhead <span class="hljs-keyword">uint32</span>
+	runqtail <span class="hljs-keyword">uint32</span>
+	runq     [<span class="hljs-number">256</span>]guintptr		<span class="hljs-comment">//</span>
+	runnext guintptr
+	...
+&#125;</code></pre></div>
+</li>
+</ul>
 
             </article>
             <hr>
@@ -266,9 +313,9 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/03/16/Go-02-%E5%AE%9E%E7%8E%B0B-%E6%A0%91/">
+                      <a href="/2021/03/16/Go-03-%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Go-02-实现B+树</span>
+                        <span class="hidden-mobile">Go-03-数据结构</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
