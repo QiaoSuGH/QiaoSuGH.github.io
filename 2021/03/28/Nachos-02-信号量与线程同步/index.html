@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Go-07-分布式缓存 - TATOVO&#39;s blog</title>
+  <title>Nachos-02-信号量与线程同步 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-03-27 17:19">
-      2021年3月27日 下午
+    <time datetime="2021-03-28 14:53">
+      2021年3月28日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      0 字
+      549 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      5
        分钟
     </span>
   
@@ -204,7 +204,43 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              
+              <h5 id="make出错"><a href="#make出错" class="headerlink" title="make出错"></a>make出错</h5><p><img src="https://i.loli.net/2021/03/28/a6ZvVFCtSoUceQb.png" srcset="/img/loading.gif" alt="image-20210328150825718"></p>
+<ul>
+<li>首先查了一下C++目录下的其他版本，包括7/7.5.0都没有该文件。</li>
+<li><a href="https://stackoverflow.com/questions/4643197/missing-include-bits-cconfig-h-when-cross-compiling-64-bit-program-on-32-bit" target="_blank" rel="noopener">查了一下</a>，推荐<code>sudo apt-get install gcc-multilib g++-multilib</code>。但是我已经装了。看到提示可能需要安装对应的版本，尝试了一下，<code>sudo apt install g++-8-multilib</code>，成功。</li>
+</ul>
+<h5 id="环形队列"><a href="#环形队列" class="headerlink" title="环形队列"></a>环形队列</h5><p>想到了Go中的channel，不过这里非常简陋，仅仅对数组封装了一下，<code>full/empty</code>没有实现，<code>get/put</code>没有判断元素数目/锁，更不用说阻塞/唤醒了。而且指导书说不做任何修改……所以我们需要自己手动去同步。</p>
+<h4 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h4><h5 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h5><ul>
+<li>生产者负责将消息送入队列；每个消费者都会创建一个对应的文件，拿到消息之后写入文件。</li>
+<li>这里我们需要信号量表示空闲slot的数目，初始值为<code>BUFF_SIZE</code>；需要信号量表示满的slot的数目，初始值为0；另外对队列的访问需要互斥锁。</li>
+<li>接下来主要是理解信号量和线程的创建部分。</li>
+</ul>
+<h5 id="信号量"><a href="#信号量" class="headerlink" title="信号量"></a>信号量</h5><p>接口非常简单，提供名字和初始值即可：</p>
+<p><img src="https://i.loli.net/2021/03/28/yxBciu2EHLJ6eoG.png" srcset="/img/loading.gif" alt="image-20210328191923922" style="zoom:67%;" /></p>
+<p>这里有一个List，比较灵活的地方在于元素类型并不确定，因为提供指针、key即可：</p>
+<p><img src="https://i.loli.net/2021/03/28/TVOqMlt9PcoJGRi.png" srcset="/img/loading.gif" alt="image-20210328192616857" style="zoom:67%;" /></p>
+<p>P操作：</p>
+<ul>
+<li>关中断</li>
+<li>循环：将当前线程添加到List末尾，然后进入睡眠，知道信号量值大于0</li>
+<li>信号量值-1</li>
+<li>恢复原来的中断状态（注释：并不在乎原本状态是开是关，直接恢复即可）</li>
+</ul>
+<p>V操作：</p>
+<ul>
+<li>关中断</li>
+<li>从List当中取出线程；如果存在那么加入就绪队列；</li>
+<li>信号量值+1</li>
+<li>恢复中断</li>
+</ul>
+<h5 id="锁"><a href="#锁" class="headerlink" title="锁"></a>锁</h5><p><img src="https://i.loli.net/2021/03/28/nGvAJieWYBDyRsV.png" srcset="/img/loading.gif" alt="image-20210328193344528"></p>
+<p>只是对信号量封装了一下—初始值为1的信号量，<code>Acquire</code>和<code>Release</code>都是基于P/V操作的。</p>
+<h5 id="线程"><a href="#线程" class="headerlink" title="线程"></a>线程</h5><p>开始的注释还提示了一下，栈大小是固定的，所以如果数据占空间比较大应该动态分配。线程也提供了一个函数<code>CheckOverFlow</code>。</p>
+<p>具体使用类似于实验一中forked thread：先创建然后再<code>fork</code>传入具体需要执行的函数及其参数。</p>
+<h5 id="结果"><a href="#结果" class="headerlink" title="结果"></a>结果</h5><p><img src="https://i.loli.net/2021/03/28/Io6cdPrYAty2TZb.png" srcset="/img/loading.gif" alt="image-20210328215241273"></p>
+<p><img src="https://i.loli.net/2021/03/28/UAO1SifMpG24LhH.png" srcset="/img/loading.gif" alt="image-20210328215251296"></p>
+<p>正常执行。</p>
+
             </article>
             <hr>
             <div>
@@ -213,7 +249,9 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/Go/">Go</a>
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -221,7 +259,9 @@
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/Go/">Go</a>
+                      <a class="hover-with-bg" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+                    
+                      <a class="hover-with-bg" href="/tags/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -234,18 +274,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/03/28/Nachos-02-%E4%BF%A1%E5%8F%B7%E9%87%8F%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Nachos-02-信号量与线程同步</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/03/20/Go-06-sort%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">
-                        <span class="hidden-mobile">Go-06-sort源码分析</span>
+                      <a href="/2021/03/27/Go-07-%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/">
+                        <span class="hidden-mobile">Go-07-分布式缓存</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -384,7 +418,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Go-07-分布式缓存&nbsp;",
+        "Nachos-02-信号量与线程同步&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,
