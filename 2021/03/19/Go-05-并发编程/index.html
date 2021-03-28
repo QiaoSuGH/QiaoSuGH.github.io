@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      923 字
+      940 字
     </span>
   
 
@@ -214,70 +214,58 @@
 </ul>
 <p>相比C/C++里面使用系统调用、手动上锁，channel显然方便了很多。</p>
 <h5 id="经典同步问题"><a href="#经典同步问题" class="headerlink" title="经典同步问题"></a>经典同步问题</h5><ul>
-<li>读写者问题</li>
-</ul>
+<li><p>生产者消费者问题</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (
 	<span class="hljs-string">"fmt"</span>
-	<span class="hljs-string">"strconv"</span>
 	<span class="hljs-string">"sync"</span>
+	<span class="hljs-string">"time"</span>
 )
 
-<span class="hljs-comment">//创建10个写者goroutine 5个读者goroutine</span>
+<span class="hljs-keyword">const</span> numConsumer = <span class="hljs-number">10</span>
+<span class="hljs-keyword">const</span> numProducer = <span class="hljs-number">10</span>
+
+<span class="hljs-comment">/*</span>
+<span class="hljs-comment">如何确保没有g向关闭的channel里面写入？</span>
+<span class="hljs-comment">本身无法从channel去判断</span>
+<span class="hljs-comment">引入外部的控制逻辑：变量bool</span>
+<span class="hljs-comment">是否可能在closed == false之后 goroutine被抢占，之后src被close，等goroutine再次运行 那么向关闭的channel发送消息？</span>
+<span class="hljs-comment">*/</span>
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">producer</span><span class="hljs-params">(wg *sync.WaitGroup, src <span class="hljs-keyword">chan</span>&lt;- <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>, closed *<span class="hljs-keyword">bool</span>)</span></span> &#123;
+	<span class="hljs-keyword">for</span> *closed == <span class="hljs-literal">false</span> &#123;
+		src &lt;- index
+		fmt.Printf(<span class="hljs-string">"%d producer puts %d\n"</span>, index, index)
+	&#125;
+	wg.Done()
+&#125;
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">consumer</span><span class="hljs-params">(wg *sync.WaitGroup, src &lt;-<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>)</span></span> &#123;
+	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> src &#123;
+		fmt.Printf(<span class="hljs-string">"%d consumer get %d\n"</span>, index, i)
+	&#125;
+	wg.Done()
+&#125;
 
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;
-	ch := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">string</span>, <span class="hljs-number">10</span>)
-	order := <span class="hljs-built_in">make</span>([]<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">10</span>)
-	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> order &#123;
-		order[i] = <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">1</span>)
-	&#125;
-
+	closed := <span class="hljs-literal">false</span>
+	src := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">5</span>)
+	wg := sync.WaitGroup&#123;&#125;
+	wg.Add(<span class="hljs-number">20</span>)
 	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++ &#123;
-		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(a <span class="hljs-keyword">int</span>)</span></span> &#123;
-			&lt;-order[a]
-			cnt := <span class="hljs-number">1</span>
-			<span class="hljs-keyword">for</span> cnt &lt;= <span class="hljs-number">5</span> &#123;
-				tmp := <span class="hljs-string">"writer goroutine"</span> + strconv.Itoa(a) + <span class="hljs-string">" "</span> + strconv.Itoa(cnt) + <span class="hljs-string">"\n"</span>
-				ch &lt;- tmp
-				cnt++
-			&#125;
-			<span class="hljs-keyword">if</span> a &lt; <span class="hljs-number">9</span> &#123;
-				order[a+<span class="hljs-number">1</span>] &lt;- <span class="hljs-number">1</span>
-			&#125;
-			<span class="hljs-built_in">close</span>(order[a])
-		&#125;(i)
+		<span class="hljs-keyword">go</span> producer(&amp;wg, src, i, &amp;closed)
+		<span class="hljs-keyword">go</span> consumer(&amp;wg, src, i)
 	&#125;
 
-	order[<span class="hljs-number">0</span>] &lt;- <span class="hljs-number">1</span>
-	<span class="hljs-keyword">var</span> wg sync.WaitGroup
-
-	t := <span class="hljs-built_in">make</span>([]<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">5</span>)
-	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> t &#123;
-		t[i] = <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">1</span>)
-	&#125;
-	t[<span class="hljs-number">0</span>] &lt;- <span class="hljs-number">1</span>
-	<span class="hljs-keyword">for</span> j := <span class="hljs-number">0</span>; j &lt; <span class="hljs-number">5</span>; j++ &#123;
-		wg.Add(<span class="hljs-number">1</span>)
-		<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(b <span class="hljs-keyword">int</span>)</span></span> &#123;
-			&lt;-t[b]
-			<span class="hljs-keyword">defer</span> wg.Done()
-			cnt := <span class="hljs-number">10</span>
-			<span class="hljs-keyword">for</span> cnt &gt; <span class="hljs-number">0</span> &#123;
-				tmp := &lt;-ch
-				fmt.Printf(tmp)
-				cnt--
-			&#125;
-			<span class="hljs-keyword">if</span> b &lt; <span class="hljs-number">4</span> &#123;
-				t[b+<span class="hljs-number">1</span>] &lt;- <span class="hljs-number">1</span>
-			&#125;
-			<span class="hljs-built_in">close</span>(t[b])
-		&#125;(j)
-	&#125;
-
+	time.Sleep(time.Second)
+	closed = <span class="hljs-literal">true</span>
+	<span class="hljs-built_in">close</span>(src)
 	wg.Wait()
-	<span class="hljs-built_in">close</span>(ch)
 &#125;</code></pre></div>
+</li>
+<li></li>
+</ul>
 <h5 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h5><ul>
 <li><p><code>hchan</code>结构体：</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hchan <span class="hljs-keyword">struct</span> &#123;

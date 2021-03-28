@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      779 字
+      971 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      9
+      11
        分钟
     </span>
   
@@ -272,9 +272,19 @@ Thread::Yield ()
 <p>在主线程执行<code>Run(nextThread)</code>之后进入<code>Run</code>函数，然后执行<code>SWITCH</code>。</p>
 </li>
 </ul>
-<p>TODO：</p>
-<p>理解汇编代码 反思上面的函数地址的问题</p>
-<p>阅读SWITCH的汇编源码，回答问题</p>
+<h5 id="SWITCH的返回地址"><a href="#SWITCH的返回地址" class="headerlink" title="SWITCH的返回地址"></a><code>SWITCH</code>的返回地址</h5><p>在<code>SWITCH</code>函数处断点，然后si单指令跟踪执行。结合<code>switch_linux.s</code>的注释我们知道其会将返回地址存在eax中，使用info r查看可知：</p>
+<p><img src="https://i.loli.net/2021/03/28/xPdasASrztK9BMv.png" srcset="/img/loading.gif" alt="image-20210328143559736" style="zoom:67%;" /></p>
+<p>注意结合我们前面<code>ThreadRoot</code>的地址：1448449594 == 0x56559631。也就是说我们第一次主线程执行<code>SWITCH</code>之后会转而执行<code>ThreadRoot</code>函数。这和我们直接执行完成的结果一致：</p>
+<p><img src="https://i.loli.net/2021/03/28/U4b5xh7otXkmzDC.png" srcset="/img/loading.gif" alt="image-20210328144017834"></p>
+<p>上面是主线程执行的结果，接下来再次执行<code>SWITCH</code>的是forked thread。</p>
+<p><img src="https://i.loli.net/2021/03/28/QuZqFi9WbYGmK7L.png" srcset="/img/loading.gif" alt="image-20210328144312431"></p>
+<p>显然，执行之后返回了<code>Yield</code>函数。</p>
+<blockquote>
+<p>其实注释里面都写了。</p>
+</blockquote>
+<h5 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h5><ul>
+<li>Nachos的上下文切换：当前线程执行<code>Yield</code>：关中断；调度器找到就绪队列中的队首元素并返回，设置其状态为就绪，然后调用<code>run</code>函数——其中执行<code>SWITCH</code>进行切换，主要是寄存器的切换；然后恢复中断。</li>
+</ul>
 
             </article>
             <hr>
