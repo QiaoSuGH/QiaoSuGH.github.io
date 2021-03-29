@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      666 字
+      693 字
     </span>
   
 
@@ -211,7 +211,8 @@
 <li><p><a href="https://juejin.cn/post/6886321367604527112" target="_blank" rel="noopener">https://juejin.cn/post/6886321367604527112</a> </p>
 </li>
 </ul>
-<h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul>
+<h5 id="进程与线程"><a href="#进程与线程" class="headerlink" title="进程与线程"></a>进程与线程</h5><p>task_struct结构体成员非常多，400个左右</p>
+<h5 id="网络"><a href="#网络" class="headerlink" title="网络"></a>网络</h5><h5 id="调度的整体流程"><a href="#调度的整体流程" class="headerlink" title="调度的整体流程"></a>调度的整体流程</h5><ul>
 <li>P中存在着一个本地队列以及<code>runnext guintptr</code>，用于M获取runable的G。M首先要与P绑定，然后不断地获取G去执行。</li>
 <li>获取过程：<ul>
 <li>如果M绑定的P为空，那么前往全局队列尝试获取G<ul>
@@ -283,7 +284,7 @@
 &#125;</code></pre></div>
 </li>
 </ul>
-
+<h5 id="状态流转"><a href="#状态流转" class="headerlink" title="状态流转"></a>状态流转</h5><h5 id="sysmon"><a href="#sysmon" class="headerlink" title="sysmon"></a>sysmon</h5><h5 id="M的spin-unspin"><a href="#M的spin-unspin" class="headerlink" title="M的spin/unspin"></a>M的spin/unspin</h5><h5 id="LockOSThread"><a href="#LockOSThread" class="headerlink" title="LockOSThread"></a>LockOSThread</h5>
             </article>
             <hr>
             <div>
