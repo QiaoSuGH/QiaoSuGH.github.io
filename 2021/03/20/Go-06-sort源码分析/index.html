@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      2.6k 字
+      3.2k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      37
+      45
        分钟
     </span>
   
@@ -290,11 +290,12 @@
 <li><p>堆排也是不稳定的。考虑很简单的三个元素的情况：<code>1 1 1</code>。建堆之后不需要调整（即使调整也不影响结论），那么第一个元素会变成最后一个元素。</p>
 </li>
 </ul>
-<h5 id="归并排序"><a href="#归并排序" class="headerlink" title="归并排序"></a>归并排序</h5><h5 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h5><ul>
+<h5 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h5><ul>
 <li><p>常见排序算法：</p>
 <p>| Algorithm                                                  | Best-case     | Worst-case    | Average-case  | Space Complexity        | Stable?     |<br>| ————————————————————————————— | ——————- | ——————- | ——————- | ———————————- | —————- |<br>| <a href="https://brilliant.org/wiki/merge/" target="_blank" rel="noopener">Merge Sort</a>            | $O(n \log n)$ | $O(n \log n)$ | $O(n \log n)$ | $O(n)$                  | Yes         |<br>| <a href="https://brilliant.org/wiki/insertion/" target="_blank" rel="noopener">Insertion Sort</a>    | $O(n)$        | $O(n^2)$      | $O(n^2)$      | $O(1)$                  | Yes         |<br>| <a href="https://brilliant.org/wiki/bubble-sort/" target="_blank" rel="noopener">Bubble Sort</a>     | $O(n)$        | $O(n^2)$      | $o(n^2)$      | $O(1)$                  | Yes         |<br>| <a href="https://brilliant.org/wiki/quick-sort/" target="_blank" rel="noopener">Quicksort</a>        | $O(n \log n)$ | $O(n^2)$      | $O(n \log n)$ | $\log n$  best, $n$ avg | Usually not |<br>| <a href="https://brilliant.org/wiki/heap-sort/" target="_blank" rel="noopener">Heapsort</a>          | $O(n \log n)$ | $O(n\log n)$  | $O(n \log n)$ | $O(1)$                  | No          |<br>| <a href="https://brilliant.org/wiki/counting-sort/" target="_blank" rel="noopener">Counting Sort</a> | $O(k+n)$      | $O(k+n)$      | $O(k+n)$      | $O(k+n)$                | Yes         |</p>
 </li>
-<li><p>基于比较的排序方法的上限是$O(\log n)$</p>
+<li><p>基于比较的排序方法的渐近下界是$\Omega( n\log n)$</p>
+<p>可以从决策树模型简单分析：如果待排序元素为n，那么依次比较所有元素，各种情况构成一棵二叉树（从根节点到叶子节点的路径代表一种排序结果）。设决策树的高度为h，所有可能的排序种数为$n!$，而决策树最多有$2^h$个叶子节点，从而$2^h \ge n!$。两边取对数，然后使用斯特林近似公式展开就可以得到渐近下届。</p>
 </li>
 <li><p>实际选择排序算法需要综合多个角度考虑：</p>
 <ul>
@@ -308,7 +309,7 @@
 <p>所以尽管快排的平均时间复杂度最好，但是并非所有情况下直接上快排。</p>
 </li>
 </ul>
-<h4 id="源码分析"><a href="#源码分析" class="headerlink" title="源码分析"></a>源码分析</h4><h5 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h5><ul>
+<h4 id="排序源码分析"><a href="#排序源码分析" class="headerlink" title="排序源码分析"></a>排序源码分析</h4><h5 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h5><ul>
 <li><p>对于待排序的数据必须实现三种方法：<code>Len/Less/Swap</code></p>
 <ul>
 <li>目前主流的方法都是基于比较的，可以通过对<code>Less</code>进行封装从而得到大于、等于、小于等于……</li>
@@ -437,7 +438,6 @@
 		c--
 	&#125;</code></pre></div>
 <p>总之，上述过程结束之后，我们完成了对数据的分区。</p>
-<p><strong>todo：关于重复数据的处理</strong></p>
 <p>最后，<code>doPivot</code>返回了第一个分区最后一个数据的索引和第二个分区第一个索引。</p>
 <h6 id="quickSort结构梳理"><a href="#quickSort结构梳理" class="headerlink" title="quickSort结构梳理"></a><code>quickSort</code>结构梳理</h6><p>在解决了上面两个问题之后，我们对这个函数有了初步的整体性的理解。在数据长度大于12、<code>maxDepth</code>不为0时，我们会分区、再递归排序。这里为了避免出现递归爆栈的问题，每次都是选择一个较小的分区进行快排，然后通过<code>a = mhi or b = mlo</code>，从而使得下次调用<code>doPivot</code>时对另外一个分区进行划分、快排。</p>
 <h5 id="希尔排序-1"><a href="#希尔排序-1" class="headerlink" title="希尔排序"></a>希尔排序</h5><p>在数据长度小于12时，我们使用的是希尔排序。这里直接将步长设为6，然后进行插入排序。实现很简单。</p>
@@ -502,12 +502,41 @@
 	&#125;
 &#125;</code></pre></div>
 <p>第一部分很直白，因为插入排序是稳定的、数据量小时表现很好，所以我们每20个元素都插入排序一次，最后不足20个也插入排序。</p>
-<p>对于第二部分主要是调用了<code>symMerge</code>函数。</p>
-<h6 id="symMerge"><a href="#symMerge" class="headerlink" title="symMerge"></a><code>symMerge</code></h6><p>由于代码比较长、贴出来不怎么好看，而且注释足够清晰，所以就梳理一下大致结构：</p>
-<ul>
-<li>如果任何一部分（我们传入了三个数，表示两个有序部分，需要将它们合并）只有一个元素，那么将另外一边使用二分查找得到待插入的位置索引，然后不断交换插入到该位置。</li>
-<li></li>
+<p>对于第二部分主要是调用了<code>symMerge</code>函数合并两个<code>blockSize</code>大小的元素(最后不足两个的部分类似处理)，<code>blockSize</code>不断翻倍。</p>
+<h6 id="symMerge"><a href="#symMerge" class="headerlink" title="symMerge"></a><code>symMerge</code></h6><p>由于代码比较长、贴出来不怎么好看，所以直接解释。</p>
+<p>第一部分：如果任何一部分（我们传入了三个数，表示两个有序部分，需要将它们合并）只有一个元素，那么将另外一边使用二分查找得到待插入的位置索引，然后不断交换插入到该位置。</p>
+<p>第二部分：比较难以理解。看注释：</p>
+<blockquote>
+<p>symMerge merges the two sorted subsequences data[a:m] and data[m:b] using the SymMerge algorithm from Pok-Son Kim and Arne Kutzner, “Stable Minimum Storage Merging by Symmetric Comparisons”, in Susanne Albers and Tomasz Radzik, editors, Algorithms - ESA 2004, volume 3221 of Lecture Notes in Computer Science, pages 714-723. Springer, 2004.</p>
+</blockquote>
+<p><a href="http://itbe.hanyang.ac.kr/ak/papers/esa2004.pdf" target="_blank" rel="noopener">这篇论文</a>前面的部分已经足够详细地解释了SYM-Merge算法，从一个线性的对称比较的方法改进到基于二分查找。后面主要是最坏情况下的性能分析以及实际上的效果。</p>
+<p><img src="https://i.loli.net/2021/03/31/nMsk9tVgjYTINO5.png" srcset="/img/loading.gif" alt="image-20210331151538169" style="zoom:67%;" /></p>
+<p>和源码中几乎一致。</p>
+<h4 id="其他"><a href="#其他" class="headerlink" title="其他"></a>其他</h4><h5 id="内建数据类型切片的排序"><a href="#内建数据类型切片的排序" class="headerlink" title="内建数据类型切片的排序"></a>内建数据类型切片的排序</h5><p>sort包支持int/float64/string三种内置类型的切片的排序。以int切片为例：</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// Ints sorts a slice of ints in increasing order.</span>
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Ints</span><span class="hljs-params">(x []<span class="hljs-keyword">int</span>)</span></span> &#123; Sort(IntSlice(x)) &#125;</code></pre></div>
+<p>首先将x转换为<code>IntSlice</code>，因为其实现了接口，直接调用<code>Sort()</code>即可。</p>
+<h5 id="sort包中的其他文件"><a href="#sort包中的其他文件" class="headerlink" title="sort包中的其他文件"></a>sort包中的其他文件</h5><ul>
+<li><code>example</code>开头的文件：都是一些实际使用sort的例子。</li>
+<li><code>slice.go</code>：提供接口使得我们只需要传入切片和<code>less</code>函数就可以排序，这样不用我们自己每次定义<code>swap</code>函数——基于反射。</li>
+<li><code>search</code>：使用“二分查找”算法来找出能使 <code>f(x)(0&lt;=x&lt;n)</code> 返回 ture 的最小值 i。 前提条件 : <code>f(x)(0&lt;=x&lt;i)</code>均返回 false,<code>f(x)(i&lt;=x&lt;n)</code> 均返回 ture。 如果不存在 i 可以使 f(i) 返回 ture, 则返回 n。</li>
 </ul>
+<h5 id="降序排序的实现"><a href="#降序排序的实现" class="headerlink" title="降序排序的实现"></a>降序排序的实现</h5><div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> reverse <span class="hljs-keyword">struct</span> &#123;
+	<span class="hljs-comment">// This embedded Interface permits Reverse to use the methods of</span>
+	<span class="hljs-comment">// another Interface implementation.</span>
+	Interface
+&#125;
+
+<span class="hljs-comment">// Less returns the opposite of the embedded implementation's Less method.</span>
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r reverse)</span> <span class="hljs-title">Less</span><span class="hljs-params">(i, j <span class="hljs-keyword">int</span>)</span> <span class="hljs-title">bool</span></span> &#123;
+	<span class="hljs-keyword">return</span> r.Interface.Less(j, i)
+&#125;
+
+<span class="hljs-comment">// Reverse returns the reverse order for data.</span>
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">Reverse</span><span class="hljs-params">(data Interface)</span> <span class="hljs-title">Interface</span></span> &#123;
+	<span class="hljs-keyword">return</span> &amp;reverse&#123;data&#125;
+&#125;</code></pre></div>
+<p>我们实际使用时，先调用<code>Reverse</code>将待排序的数据转换成<code>reverse</code>这个结构体，该结构体的<code>Less</code>方法与原本数据的<code>Less</code>方法刚好相反，另外的方法不用改动。</p>
 
             </article>
             <hr>

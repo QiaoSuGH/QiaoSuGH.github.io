@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      940 字
+      1k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      11
+      12
        分钟
     </span>
   
@@ -218,50 +218,50 @@
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 
 <span class="hljs-keyword">import</span> (
+	<span class="hljs-string">"context"</span>
 	<span class="hljs-string">"fmt"</span>
-	<span class="hljs-string">"sync"</span>
 	<span class="hljs-string">"time"</span>
 )
 
 <span class="hljs-keyword">const</span> numConsumer = <span class="hljs-number">10</span>
 <span class="hljs-keyword">const</span> numProducer = <span class="hljs-number">10</span>
 
-<span class="hljs-comment">/*</span>
-<span class="hljs-comment">如何确保没有g向关闭的channel里面写入？</span>
-<span class="hljs-comment">本身无法从channel去判断</span>
-<span class="hljs-comment">引入外部的控制逻辑：变量bool</span>
-<span class="hljs-comment">是否可能在closed == false之后 goroutine被抢占，之后src被close，等goroutine再次运行 那么向关闭的channel发送消息？</span>
-<span class="hljs-comment">*/</span>
-
-<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">producer</span><span class="hljs-params">(wg *sync.WaitGroup, src <span class="hljs-keyword">chan</span>&lt;- <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>, closed *<span class="hljs-keyword">bool</span>)</span></span> &#123;
-	<span class="hljs-keyword">for</span> *closed == <span class="hljs-literal">false</span> &#123;
-		src &lt;- index
-		fmt.Printf(<span class="hljs-string">"%d producer puts %d\n"</span>, index, index)
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">producer</span><span class="hljs-params">(ctx context.Context,src <span class="hljs-keyword">chan</span>&lt;- <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>)</span></span> &#123;
+	<span class="hljs-keyword">for</span> &#123;
+		<span class="hljs-keyword">select</span> &#123;
+		<span class="hljs-keyword">case</span> &lt;-ctx.Done():
+			<span class="hljs-keyword">return</span>
+		<span class="hljs-keyword">default</span>:
+			src &lt;- index
+			fmt.Printf(<span class="hljs-string">"%d producer puts %d\n"</span>, index, index)
+		&#125;
 	&#125;
-	wg.Done()
 &#125;
 
-<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">consumer</span><span class="hljs-params">(wg *sync.WaitGroup, src &lt;-<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>)</span></span> &#123;
-	<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> src &#123;
-		fmt.Printf(<span class="hljs-string">"%d consumer get %d\n"</span>, index, i)
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">consumer</span><span class="hljs-params">(ctx context.Context,src &lt;-<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, index <span class="hljs-keyword">int</span>)</span></span> &#123;
+	<span class="hljs-keyword">for</span> &#123;
+		<span class="hljs-keyword">select</span> &#123;
+		<span class="hljs-keyword">case</span> &lt;-ctx.Done():
+			<span class="hljs-keyword">return</span>
+		<span class="hljs-keyword">default</span>:
+			<span class="hljs-keyword">for</span> i := <span class="hljs-keyword">range</span> src &#123;
+				fmt.Printf(<span class="hljs-string">"%d consumer get %d\n"</span>, index, i)
+			&#125;
+		&#125;
 	&#125;
-	wg.Done()
 &#125;
 
 <span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;
-	closed := <span class="hljs-literal">false</span>
+	ctx, cancel := context.WithCancel(context.Background())
 	src := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">int</span>, <span class="hljs-number">5</span>)
-	wg := sync.WaitGroup&#123;&#125;
-	wg.Add(<span class="hljs-number">20</span>)
 	<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">10</span>; i++ &#123;
-		<span class="hljs-keyword">go</span> producer(&amp;wg, src, i, &amp;closed)
-		<span class="hljs-keyword">go</span> consumer(&amp;wg, src, i)
+		<span class="hljs-keyword">go</span> producer(ctx, src, i)
+		<span class="hljs-keyword">go</span> consumer(ctx, src, i)
 	&#125;
 
-	time.Sleep(time.Second)
-	closed = <span class="hljs-literal">true</span>
+	time.Sleep(time.Second * <span class="hljs-number">1</span>)
+	cancel()
 	<span class="hljs-built_in">close</span>(src)
-	wg.Wait()
 &#125;</code></pre></div>
 </li>
 <li></li>
@@ -330,6 +330,25 @@
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> mu sync.Mutex
 mu.Lock()
 mu.Unlock()</code></pre></div>
+<h4 id="Context包"><a href="#Context包" class="headerlink" title="Context包"></a>Context包</h4><h4 id="实际场景应用"><a href="#实际场景应用" class="headerlink" title="实际场景应用"></a>实际场景应用</h4><h5 id="结束goroutine"><a href="#结束goroutine" class="headerlink" title="结束goroutine"></a>结束goroutine</h5><ul>
+<li><p>单个：A结束B：使用channel+select的方式。</p>
+<p>我们可以在A中创建一个channel，在B中for循环select监听该channel。A想要结束B，就发送消息，那么B select满足条件之后结束退出。</p>
+<p>这种方式无法应对多个B的情况。</p>
+</li>
+<li><p>context包：非常方便。</p>
+<div class="hljs"><pre><code class="hljs go">ctx,cancel := context.WithCancel(context.Background())
+<span class="hljs-comment">//启动goroutine时传入ctx从而可以跟踪goroutine</span>
+<span class="hljs-keyword">for</span>&#123;
+    <span class="hljs-keyword">select</span>&#123;
+        <span class="hljs-keyword">case</span> &lt;-ctx.Done():
+        	<span class="hljs-keyword">return</span>
+        <span class="hljs-keyword">default</span>:
+        	......
+    &#125;
+&#125;
+<span class="hljs-comment">//“父goroutine”直接调用cancel()那么所有其创建的goroutine都会结束</span></code></pre></div>
+</li>
+</ul>
 
             </article>
             <hr>
