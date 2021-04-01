@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1k 字
+      1.3k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      12
+      17
        分钟
     </span>
   
@@ -213,6 +213,92 @@
 </li>
 </ul>
 <p>相比C/C++里面使用系统调用、手动上锁，channel显然方便了很多。</p>
+<h5 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h5><ul>
+<li><p><code>hchan</code>结构体：</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hchan <span class="hljs-keyword">struct</span> &#123;
+	qcount   <span class="hljs-keyword">uint</span>           <span class="hljs-comment">// 队列中元素总数量</span>
+	dataqsiz <span class="hljs-keyword">uint</span>           <span class="hljs-comment">// 循环队列的长度</span>
+	buf      unsafe.Pointer <span class="hljs-comment">// 指向长度为 dataqsiz 的底层数组，只有在有缓冲时这个才有意义</span>
+	elemsize <span class="hljs-keyword">uint16</span>         <span class="hljs-comment">// 能够发送和接受的元素大小</span>
+	closed   <span class="hljs-keyword">uint32</span>         <span class="hljs-comment">// 是否关闭</span>
+	elemtype *_type <span class="hljs-comment">// 元素的类型</span>
+	sendx    <span class="hljs-keyword">uint</span>   <span class="hljs-comment">// 当前已发送的元素在队列当中的索引位置</span>
+	recvx    <span class="hljs-keyword">uint</span>   <span class="hljs-comment">// 当前已接收的元素在队列当中的索引位置</span>
+	recvq    waitq  <span class="hljs-comment">// 接收 Goroutine 链表</span>
+	sendq    waitq  <span class="hljs-comment">// 发送 Goroutine 链表</span>
+
+	lock mutex <span class="hljs-comment">// 互斥锁</span>
+&#125;
+
+<span class="hljs-comment">// waitq 是一个双向链表，里面保存了 goroutine</span>
+<span class="hljs-keyword">type</span> waitq <span class="hljs-keyword">struct</span> &#123;
+	first *sudog
+	last  *sudog
+&#125;</code></pre></div>
+</li>
+<li><p>创建策略：</p>
+<ul>
+<li>无缓冲：直接给<code>hchan</code>分配内存</li>
+<li>有缓冲：<ul>
+<li>无指针：给<code>hchan</code>和底层数组分配一段连续的内存空间</li>
+<li>有指针：为<code>hchan</code>和底层数组分别分配内存</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>发送数据：主要工作由<code>chansend</code>完成。逻辑大致如下：（存在加锁解锁的行为，这里略去）</p>
+<ul>
+<li><p>一些提前的判断处理</p>
+</li>
+<li><p>已经关闭了，直接<code>panic</code></p>
+</li>
+<li><p>如果存在阻塞等待数据的goroutine，那么将数据传给它，然后返回</p>
+<ul>
+<li>修改goroutine状态为可运行的，并将其放到发送数据的goroutine所在的p的<code>runnext</code>。</li>
+</ul>
+</li>
+<li><p>如果存在缓冲区并且缓冲区没有满，那么加入缓冲区。注意是环形队列，变量更新。</p>
+</li>
+<li><p>如果处理到这里，说明上述条件都不会满足。如果是非阻塞的，那么直接返回，如果是阻塞的，那么我们需要对goroutine进行后续的处理：</p>
+<ul>
+<li>设置相关信息</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>加入等待队列：sendq<ul>
+<li>挂起当前goroutine</li>
+<li>保证当前数据处于活跃状态避免被回收</li>
+<li>……</li>
+</ul>
+</li>
+</ul>
+<h5 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h5><ul>
+<li>如何退出</li>
+</ul>
+<h4 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h4><h5 id="互斥锁"><a href="#互斥锁" class="headerlink" title="互斥锁"></a>互斥锁</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> mu sync.Mutex
+mu.Lock()
+mu.Unlock()</code></pre></div>
+<h4 id="Context包"><a href="#Context包" class="headerlink" title="Context包"></a>Context包</h4><h4 id="实际场景应用"><a href="#实际场景应用" class="headerlink" title="实际场景应用"></a>实际场景应用</h4><h5 id="结束goroutine"><a href="#结束goroutine" class="headerlink" title="结束goroutine"></a>结束goroutine</h5><ul>
+<li><p>单个：A结束B：使用channel+select的方式。</p>
+<p>我们可以在A中创建一个channel，在B中for循环select监听该channel。A想要结束B，就发送消息，那么B select满足条件之后结束退出。</p>
+<p>这种方式无法应对多个B的情况。</p>
+</li>
+<li><p>context包：非常方便。</p>
+<div class="hljs"><pre><code class="hljs go">ctx,cancel := context.WithCancel(context.Background())
+<span class="hljs-comment">//启动goroutine时传入ctx从而可以跟踪goroutine</span>
+<span class="hljs-keyword">for</span>&#123;
+    <span class="hljs-keyword">select</span>&#123;
+        <span class="hljs-keyword">case</span> &lt;-ctx.Done():
+        	<span class="hljs-keyword">return</span>
+        <span class="hljs-keyword">default</span>:
+        	......
+    &#125;
+&#125;
+<span class="hljs-comment">//“父goroutine”直接调用cancel()那么所有其创建的goroutine都会结束</span></code></pre></div>
+</li>
+</ul>
 <h5 id="经典同步问题"><a href="#经典同步问题" class="headerlink" title="经典同步问题"></a>经典同步问题</h5><ul>
 <li><p>生产者消费者问题</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
@@ -264,89 +350,59 @@
 	<span class="hljs-built_in">close</span>(src)
 &#125;</code></pre></div>
 </li>
-<li></li>
-</ul>
-<h5 id="实现细节"><a href="#实现细节" class="headerlink" title="实现细节"></a>实现细节</h5><ul>
-<li><p><code>hchan</code>结构体：</p>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> hchan <span class="hljs-keyword">struct</span> &#123;
-	qcount   <span class="hljs-keyword">uint</span>           <span class="hljs-comment">// 队列中元素总数量</span>
-	dataqsiz <span class="hljs-keyword">uint</span>           <span class="hljs-comment">// 循环队列的长度</span>
-	buf      unsafe.Pointer <span class="hljs-comment">// 指向长度为 dataqsiz 的底层数组，只有在有缓冲时这个才有意义</span>
-	elemsize <span class="hljs-keyword">uint16</span>         <span class="hljs-comment">// 能够发送和接受的元素大小</span>
-	closed   <span class="hljs-keyword">uint32</span>         <span class="hljs-comment">// 是否关闭</span>
-	elemtype *_type <span class="hljs-comment">// 元素的类型</span>
-	sendx    <span class="hljs-keyword">uint</span>   <span class="hljs-comment">// 当前已发送的元素在队列当中的索引位置</span>
-	recvx    <span class="hljs-keyword">uint</span>   <span class="hljs-comment">// 当前已接收的元素在队列当中的索引位置</span>
-	recvq    waitq  <span class="hljs-comment">// 接收 Goroutine 链表</span>
-	sendq    waitq  <span class="hljs-comment">// 发送 Goroutine 链表</span>
+<li><p>轮流执行：多个goroutine按照特定顺序执行</p>
+<p>e.g：有三个函数 分别可以打印AAA BBB CCC，要求每个函数都起一个goroutine按照上面的顺序打印在屏幕上</p>
+<p>第一种方式：启动三个goroutine，每个goroutine内部循环打印，通过无缓冲channel控制执行的顺序；通过WaitGroup来等待结束；注意为了保证能正常运行，最后一次不要再向channel发送，否则会阻塞。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> main
 
-	lock mutex <span class="hljs-comment">// 互斥锁</span>
-&#125;
+<span class="hljs-keyword">import</span> (
+	<span class="hljs-string">"fmt"</span>
+	<span class="hljs-string">"sync"</span>
+)
 
-<span class="hljs-comment">// waitq 是一个双向链表，里面保存了 goroutine</span>
-<span class="hljs-keyword">type</span> waitq <span class="hljs-keyword">struct</span> &#123;
-	first *sudog
-	last  *sudog
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">main</span><span class="hljs-params">()</span></span> &#123;
+	cha := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125;)
+	chb := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125;)
+	chc := <span class="hljs-built_in">make</span>(<span class="hljs-keyword">chan</span> <span class="hljs-keyword">struct</span>&#123;&#125;)
+	<span class="hljs-keyword">defer</span> <span class="hljs-built_in">close</span>(cha)
+	<span class="hljs-keyword">defer</span> <span class="hljs-built_in">close</span>(chb)
+	<span class="hljs-keyword">defer</span> <span class="hljs-built_in">close</span>(chc)
+
+	<span class="hljs-keyword">var</span> wg sync.WaitGroup
+	wg.Add(<span class="hljs-number">3</span>)
+	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(wg *sync.WaitGroup)</span></span> &#123;
+		<span class="hljs-keyword">defer</span> wg.Done()
+		<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++ &#123;
+			&lt;-cha
+			fmt.Printf(<span class="hljs-string">"AAA\n"</span>)
+			chb &lt;- <span class="hljs-keyword">struct</span>&#123;&#125;&#123;&#125;
+		&#125;
+	&#125;(&amp;wg)
+
+	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(wg *sync.WaitGroup)</span></span> &#123;
+		<span class="hljs-keyword">defer</span> wg.Done()
+		<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++ &#123;
+			&lt;-chb
+			fmt.Printf(<span class="hljs-string">"BBB\n"</span>)
+			chc &lt;- <span class="hljs-keyword">struct</span>&#123;&#125;&#123;&#125;
+		&#125;
+	&#125;(&amp;wg)
+
+	<span class="hljs-keyword">go</span> <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">(wg *sync.WaitGroup)</span></span> &#123;
+		<span class="hljs-keyword">defer</span> wg.Done()
+		<span class="hljs-keyword">for</span> i := <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">100</span>; i++ &#123;
+			&lt;-chc
+			fmt.Printf(<span class="hljs-string">"CCC\n"</span>)
+			<span class="hljs-keyword">if</span> i != <span class="hljs-number">99</span> &#123;
+				cha &lt;- <span class="hljs-keyword">struct</span>&#123;&#125;&#123;&#125;
+			&#125;
+		&#125;
+	&#125;(&amp;wg)
+
+	cha &lt;- <span class="hljs-keyword">struct</span>&#123;&#125;&#123;&#125;
+	wg.Wait()
 &#125;</code></pre></div>
-</li>
-<li><p>创建策略：</p>
-<ul>
-<li>无缓冲：直接给<code>hchan</code>分配内存</li>
-<li>有缓冲：<ul>
-<li>无指针：给<code>hchan</code>和底层数组分配一段连续的内存空间</li>
-<li>有指针：为<code>hchan</code>和底层数组分别分配内存</li>
-</ul>
-</li>
-</ul>
-</li>
-<li><p>发送数据：主要工作由<code>chansend</code>完成。逻辑大致如下：（存在加锁解锁的行为，这里略去）</p>
-<ul>
-<li><p>一些提前的判断处理</p>
-</li>
-<li><p>已经关闭了，直接<code>panic</code></p>
-</li>
-<li><p>如果存在阻塞等待数据的goroutine，那么将数据传给它，然后返回</p>
-<ul>
-<li>修改goroutine状态为可运行的，并将其放到发送数据的goroutine所在的p的<code>runnext</code>。</li>
-</ul>
-</li>
-<li><p>如果存在缓冲区并且缓冲区没有满，那么加入缓冲区。注意是环形队列，变量更新。</p>
-</li>
-<li><p>如果处理到这里，说明上述条件都不会满足。如果是非阻塞的，那么直接返回，如果是阻塞的，那么我们需要对goroutine进行后续的处理：</p>
-<ul>
-<li><p>设置相关信息</p>
-</li>
-<li><p>加入等待队列：sendq</p>
-</li>
-<li>挂起当前goroutine</li>
-<li>保证当前数据处于活跃状态避免被回收</li>
-<li>……</li>
-</ul>
-</li>
-</ul>
-</li>
-</ul>
-<h4 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h4><h5 id="互斥锁"><a href="#互斥锁" class="headerlink" title="互斥锁"></a>互斥锁</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> mu sync.Mutex
-mu.Lock()
-mu.Unlock()</code></pre></div>
-<h4 id="Context包"><a href="#Context包" class="headerlink" title="Context包"></a>Context包</h4><h4 id="实际场景应用"><a href="#实际场景应用" class="headerlink" title="实际场景应用"></a>实际场景应用</h4><h5 id="结束goroutine"><a href="#结束goroutine" class="headerlink" title="结束goroutine"></a>结束goroutine</h5><ul>
-<li><p>单个：A结束B：使用channel+select的方式。</p>
-<p>我们可以在A中创建一个channel，在B中for循环select监听该channel。A想要结束B，就发送消息，那么B select满足条件之后结束退出。</p>
-<p>这种方式无法应对多个B的情况。</p>
-</li>
-<li><p>context包：非常方便。</p>
-<div class="hljs"><pre><code class="hljs go">ctx,cancel := context.WithCancel(context.Background())
-<span class="hljs-comment">//启动goroutine时传入ctx从而可以跟踪goroutine</span>
-<span class="hljs-keyword">for</span>&#123;
-    <span class="hljs-keyword">select</span>&#123;
-        <span class="hljs-keyword">case</span> &lt;-ctx.Done():
-        	<span class="hljs-keyword">return</span>
-        <span class="hljs-keyword">default</span>:
-        	......
-    &#125;
-&#125;
-<span class="hljs-comment">//“父goroutine”直接调用cancel()那么所有其创建的goroutine都会结束</span></code></pre></div>
+<p>当然，直接在main函数中循环100次，每次创建三个goroutine去执行也是可以的，代码更加的简洁。</p>
 </li>
 </ul>
 
