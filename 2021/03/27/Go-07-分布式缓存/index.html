@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      0 字
+      813 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      9
        分钟
     </span>
   
@@ -204,7 +204,62 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              
+              <h4 id="防止缓存击穿"><a href="#防止缓存击穿" class="headerlink" title="防止缓存击穿"></a>防止缓存击穿</h4><blockquote>
+<p>所谓的缓存击穿是指某个热点key在失效时，大量的并发请求击穿缓存、直接打到数据库上。</p>
+<p>另外还有缓存雪崩——某一时刻大量缓存失效导致大量请求落在数据库上。——设置不同的过期时间；分级缓存；永不过期；互斥锁；熔断机制，限流降级。</p>
+<p>缓存穿透——缓存和数据库中都不存在的值。——将无效的key放入缓存，设置value为NULL；布隆过滤器。</p>
+</blockquote>
+<h5 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h5><ul>
+<li><p>非常直接的，如果热点数据永不过期，那么自然不会击穿。</p>
+<ul>
+<li>物理上，没有过期时间</li>
+<li>逻辑上，不断更新</li>
+</ul>
+</li>
+<li><p>限制并发读取某个key，可以使用“互斥锁”或者队列。</p>
+</li>
+</ul>
+<h5 id="singleflight"><a href="#singleflight" class="headerlink" title="singleflight"></a>singleflight</h5><p><a href="https://pkg.go.dev/golang.org/x/sync/singleflight" target="_blank" rel="noopener">官方文档</a></p>
+<p><a href="https://github.com/golang/sync/blob/036812b2e83c/singleflight/singleflight.go#L86" target="_blank" rel="noopener">源码</a></p>
+<p><strong>关键逻辑：</strong></p>
+<ul>
+<li>首先我们将请求抽象成<code>call</code>结构体，自然肯定需要包括我们的返回值以及返回的错误；另外为了确保第一个请求之后的请求并不会执行、而是等待第一个请求执行完成，我们使用<code>sync.WaitGroup</code>。</li>
+<li>为了处理很多的请求，我们使用<code>map[string]*call</code>来进行标示、记录。而且，由于<code>map</code>并非线程安全的，所以需要互斥锁。从而抽象出<code>Group</code>结构体。</li>
+<li>如果暂时忽略掉错误处理等部分，只关心<code>Do</code>核心逻辑，那么大致过程如下：<ul>
+<li>首先拿到锁。如果此时尚未初始化<code>Group</code>，那么初始化——<strong>延迟初始化</strong>。</li>
+<li>之后我们尝试获取对应的<code>call</code><ul>
+<li>如果存在，那么已经拿到了，此时可以对<code>Group</code>解锁——因为对其他<code>call</code>的操作并不会影响到我们当前的<code>call</code>。此时我们调用<code>wg.Wait()</code>。<ul>
+<li>如果存在其他线程正在持有该<code>call</code>进行请求、尚未完成，那么当前线程等待。</li>
+<li>如果并不存在，那么直接继续执行，返回值。</li>
+</ul>
+</li>
+<li>如果不存在，那么构建一个。并且<code>wg.Add(1)</code>，然后将其添加到<code>Group</code>的<code>map</code>当中，然后解锁。接着我们再调用<code>doCall</code>完成请求——当然这中间涉及到<code>wg.Done()</code>。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>其他接口：</p>
+<ul>
+<li><p><code>func (g *Group) Forget(key string)</code>：从<code>Group</code>中删除<code>key</code>，这样根据上面的逻辑，之后的请求会形成新的<code>call</code>、重新拿到数据。</p>
+</li>
+<li><p><code>func (g *Group) DoChan(key string, fn func() (interface{}, error)) &lt;-chan Result</code>：类似于<code>Do</code>，但是会返回<code>Result</code>类型的只读的channel。具体执行逻辑在<code>doCall</code>中：</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// Normal return</span>
+<span class="hljs-keyword">for</span> _, ch := <span class="hljs-keyword">range</span> c.chans &#123;
+	ch &lt;- Result&#123;c.val, c.err, c.dups &gt; <span class="hljs-number">0</span>&#125;
+&#125;</code></pre></div>
+<p>可以看到，在请求成功执行完毕之后，遍历<code>call</code>中的<code>chans []chan&lt;- Result</code>，发送数据。其中<code>Result</code>定义如下：</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Result <span class="hljs-keyword">struct</span> &#123;
+	Val    <span class="hljs-keyword">interface</span>&#123;&#125;
+	Err    error
+	Shared <span class="hljs-keyword">bool</span>
+&#125;</code></pre></div>
+<p>无论是在<code>Do</code>还是在<code>DoChan</code>中，一旦<code>call</code>存在，那么之后的调用都会将<code>dup</code>字段加一。所以这里<code>Shared == c.dups &gt; 0</code>代表了结果将会被返回给多个调用者。</p>
+</li>
+</ul>
+<p>groupcache中的singleflight包：<a href="https://github.com/golang/groupcache/tree/master/singleflight" target="_blank" rel="noopener">https://github.com/golang/groupcache/tree/master/singleflight</a></p>
+<p>这里实现得很简洁，整体思路、逻辑是一样的，只是去除了用不上的部分，只有一个<code>func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, error)</code>。</p>
+<h4 id="HTTP通信"><a href="#HTTP通信" class="headerlink" title="HTTP通信"></a>HTTP通信</h4>
             </article>
             <hr>
             <div>

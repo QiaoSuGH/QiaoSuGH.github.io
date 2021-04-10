@@ -275,7 +275,7 @@ http.HandleFunc(pattern,相应的处理函数P)
         
           
         
-        <div>pprof</div>
+        <div>pprofProtobuf</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -364,7 +364,13 @@ http.HandleFunc(pattern,相应的处理函数P)
         
           
         
-        <div></div>
+        <div>防止缓存击穿
+所谓的缓存击穿是指某个热点key在失效时，大量的并发请求击穿缓存、直接打到数据库上。
+另外还有缓存雪崩——某一时刻大量缓存失效导致大量请求落在数据库上。——设置不同的过期时间；分级缓存；永不过期；互斥锁；熔断机制，限流降级。
+缓存穿透——缓存和数据库中都不存在的值。——将无效的key放入缓存，设置value为NULL；布隆过滤器。
+
+解决方案
+非常直接的，如果热点数据永不过期，那么自</div>
       </a>
 
       <div class="index-btm post-metas">
