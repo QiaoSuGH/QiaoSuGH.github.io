@@ -168,6 +168,57 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/04/11/Go-11-OOP-in-Go/">Go-11-OOP in Go</a>
+
+      <a href="/2021/04/11/Go-11-OOP-in-Go/" class="index-excerpt">
+        
+        
+          
+        
+        <div>ToDoList：
+
+如何理解OOP
+为什么Go没有类似于C++/JAVA中的实现
+如何使用Go去解决适合OOP解决的问题
+
+
+发现事情逐渐变得不可控——因为我并没有“架构”上的经验。
+所以还是回到最初的问题——如何使用Go的method/interface。
+
+
+如何理解OOP简单来说，这是一种设计思想——如何架构一个比较复杂的项目/程序？一种方式是抽象出很多节点，节点内部的状态是隐藏的，节点之</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-04-11
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/04/06/Go-10-map%E7%9A%84%E5%AE%9E%E7%8E%B0/">Go-10-map的实现</a>
 
       <a href="/2021/04/06/Go-10-map%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="index-excerpt">
@@ -220,9 +271,9 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/03/30/Go-09-net/">Go-09-net</a>
+      <a class="index-header" href="/2021/03/30/Go-09-net-http/">Go-09-net/http</a>
 
-      <a href="/2021/03/30/Go-09-net/" class="index-excerpt">
+      <a href="/2021/03/30/Go-09-net-http/" class="index-excerpt">
         
         
           
@@ -364,13 +415,10 @@ http.HandleFunc(pattern,相应的处理函数P)
         
           
         
-        <div>防止缓存击穿
-所谓的缓存击穿是指某个热点key在失效时，大量的并发请求击穿缓存、直接打到数据库上。
-另外还有缓存雪崩——某一时刻大量缓存失效导致大量请求落在数据库上。——设置不同的过期时间；分级缓存；永不过期；互斥锁；熔断机制，限流降级。
-缓存穿透——缓存和数据库中都不存在的值。——将无效的key放入缓存，设置value为NULL；布隆过滤器。
-
-解决方案
-非常直接的，如果热点数据永不过期，那么自</div>
+        <div>整体结构整体获取缓存的逻辑：                            是
+接收 key --&gt; 检查是否被缓存 -----&gt; 返回缓存值 ⑴
+                |  否                         是
+                |-----&gt; 是否应当从远程节点获取 -----&gt; 与远程节点交互 --&gt; 返回缓存值</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -551,53 +599,6 @@ Go采用多级缓存内存分配
           
         
         <div></div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-03-16
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/Go/">Go</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Go/">Go</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/">Go-01-GMP模型</a>
-
-      <a href="/2021/03/16/Go-01-GMP%E6%A8%A1%E5%9E%8B/" class="index-excerpt">
-        
-        
-          
-        
-        <div>参考文档
-https://draveness.me/golang/docs/part3-runtime/ch06-concurrency/golang-goroutine/#651-%E8%AE%BE%E8%AE%A1%E5%8E%9F%E7%90%86
-《Go语言设计与实现》
-
-https://juejin.cn/post/6886321367604527112 
-
-
-进程与线程task_str</div>
       </a>
 
       <div class="index-btm post-metas">

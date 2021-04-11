@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      813 字
+      1.5k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      9
+      16
        分钟
     </span>
   
@@ -204,7 +204,28 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="防止缓存击穿"><a href="#防止缓存击穿" class="headerlink" title="防止缓存击穿"></a>防止缓存击穿</h4><blockquote>
+              <h4 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h4><h5 id="整体获取缓存的逻辑："><a href="#整体获取缓存的逻辑：" class="headerlink" title="整体获取缓存的逻辑："></a>整体获取缓存的逻辑：</h5><div class="hljs"><pre><code class="hljs go">                            是
+接收 key --&gt; 检查是否被缓存 -----&gt; 返回缓存值 ⑴
+                |  否                         是
+                |-----&gt; 是否应当从远程节点获取 -----&gt; 与远程节点交互 --&gt; 返回缓存值 ⑵
+                            |  否
+                            |-----&gt; 调用<span class="hljs-string">`回调函数`</span>，获取值并添加到缓存 --&gt; 返回缓存值 ⑶</code></pre></div>
+<h5 id="单机并发缓存"><a href="#单机并发缓存" class="headerlink" title="单机并发缓存"></a>单机并发缓存</h5><ul>
+<li>首先自然是缓存的实现——K-V结构。因此在底层，我们使用<code>map</code>来实现。</li>
+<li>同时我们需要考虑淘汰策略，最常见、实现又非常简单的自然是LRU了。</li>
+<li>注意上述实现并不是并发安全的，所以我们考虑再抽象出<code>cache</code>的结构，主要是结合互斥锁进行封装。</li>
+<li>由于我们可能存在多个缓存实例，因此名字也是必要的。</li>
+<li>结合上述部分，我们抽象除了<code>Group</code>结构体，包括缓存名称、LRU缓存实例、回调接口。</li>
+</ul>
+<h5 id="分布式"><a href="#分布式" class="headerlink" title="分布式"></a>分布式</h5><p>每一个节点都可以是服务端/客户端。</p>
+<ul>
+<li><p>作为服务端：接受请求，返回值。</p>
+</li>
+<li><p>作为客户端：通过一致性哈希得到远程节点，构造请求发送给远程节点，得到返回值。</p>
+</li>
+</ul>
+<p>为了避免缓存击穿，我们通过singleflight模式从远程获取数据。</p>
+<h4 id="防止缓存击穿"><a href="#防止缓存击穿" class="headerlink" title="防止缓存击穿"></a>防止缓存击穿</h4><blockquote>
 <p>所谓的缓存击穿是指某个热点key在失效时，大量的并发请求击穿缓存、直接打到数据库上。</p>
 <p>另外还有缓存雪崩——某一时刻大量缓存失效导致大量请求落在数据库上。——设置不同的过期时间；分级缓存；永不过期；互斥锁；熔断机制，限流降级。</p>
 <p>缓存穿透——缓存和数据库中都不存在的值。——将无效的key放入缓存，设置value为NULL；布隆过滤器。</p>
@@ -219,7 +240,10 @@
 <li><p>限制并发读取某个key，可以使用“互斥锁”或者队列。</p>
 </li>
 </ul>
-<h5 id="singleflight"><a href="#singleflight" class="headerlink" title="singleflight"></a>singleflight</h5><p><a href="https://pkg.go.dev/golang.org/x/sync/singleflight" target="_blank" rel="noopener">官方文档</a></p>
+<h5 id="singleflight"><a href="#singleflight" class="headerlink" title="singleflight"></a>singleflight</h5><blockquote>
+<p>一种比较巧妙的限制并发请求的方法，在<code>sync.singleflight</code>中有较完整的实现，groupcache实现了简单的子集。</p>
+</blockquote>
+<p><a href="https://pkg.go.dev/golang.org/x/sync/singleflight" target="_blank" rel="noopener">官方文档</a></p>
 <p><a href="https://github.com/golang/sync/blob/036812b2e83c/singleflight/singleflight.go#L86" target="_blank" rel="noopener">源码</a></p>
 <p><strong>关键逻辑：</strong></p>
 <ul>
@@ -259,7 +283,24 @@
 </ul>
 <p>groupcache中的singleflight包：<a href="https://github.com/golang/groupcache/tree/master/singleflight" target="_blank" rel="noopener">https://github.com/golang/groupcache/tree/master/singleflight</a></p>
 <p>这里实现得很简洁，整体思路、逻辑是一样的，只是去除了用不上的部分，只有一个<code>func (g *Group) Do(key string, fn func() (interface{}, error)) (interface{}, error)</code>。</p>
-<h4 id="HTTP通信"><a href="#HTTP通信" class="headerlink" title="HTTP通信"></a>HTTP通信</h4>
+<h4 id="HTTP通信"><a href="#HTTP通信" class="headerlink" title="HTTP通信"></a>HTTP通信</h4><h5 id="HTTP包"><a href="#HTTP包" class="headerlink" title="HTTP包"></a>HTTP包</h5><p><a href="https://golang.org/pkg/net/http/" target="_blank" rel="noopener">官方文档</a></p>
+<h5 id="一致性哈希"><a href="#一致性哈希" class="headerlink" title="一致性哈希"></a>一致性哈希</h5><p>作用在于稳定地将某个key映射到同一远程节点。这里的远程节点的表示可以是名称，也可以是标号、IP地址等。当然，最终都需要获取到IP地址。</p>
+<h5 id="如何实现从远程节点获取数据"><a href="#如何实现从远程节点获取数据" class="headerlink" title="如何实现从远程节点获取数据"></a>如何实现从远程节点获取数据</h5><p>逻辑：</p>
+<ul>
+<li>首先是触发从远程获取：未能从本地获取。</li>
+<li>初始化时对于每个<code>Group</code>注册远程节点——将创建的<code>HTTPPool</code>对象赋值给<code>Group.peers</code><ul>
+<li>每个<code>HTTPPool</code>对象持有一个一致性哈希的实例，用于将<code>key</code>映射到对应的真实节点</li>
+<li>同时还持有一个<code>httpGetters  map[string]*httpGetter</code>，用于将真实节点映射到客户端</li>
+<li>如果我们初始化时使用的是节点的IP地址，那么一致性哈希当中会增加节点、<code>httpGetters</code>中增加客户端。从而之后我们可以根据<code>key</code>获取客户端</li>
+</ul>
+</li>
+<li>客户端拥有数据：<code>baseURL</code>，例如：<code>http://IPAddr:port/_qscache</code>。调用客户端的<code>Get</code>方法时传入<code>Group</code>和<code>key</code>即可构造出最终的请求。</li>
+</ul>
+<p>实现细节：</p>
+<ul>
+<li>我们的客户端的表示是结构体<code>httpGetter</code>，只有一个<code>baseURL</code>字段，用于构造请求。</li>
+</ul>
+
             </article>
             <hr>
             <div>
