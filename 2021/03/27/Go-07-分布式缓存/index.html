@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      2.4k 字
+      2.5k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      26
+      27
        分钟
     </span>
   
@@ -347,7 +347,19 @@
 </li>
 </ul>
 </blockquote>
-<h5 id="Go中使用protobuf"><a href="#Go中使用protobuf" class="headerlink" title="Go中使用protobuf"></a>Go中使用protobuf</h5>
+<h5 id="使用protobuf"><a href="#使用protobuf" class="headerlink" title="使用protobuf"></a>使用protobuf</h5><p><a href="https://pkg.go.dev/google.golang.org/protobuf@v1.26.0/proto#pkg-overview" target="_blank" rel="noopener">官方文档</a></p>
+<p>首先，我们需要定义message。因为主要是用于编码<code>group key value</code>，所以很简单：</p>
+<div class="hljs"><pre><code class="hljs go">message Request&#123;
+    <span class="hljs-keyword">string</span> group = <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">string</span> key = <span class="hljs-number">2</span>;
+&#125;
+
+message Response&#123;
+    bytes value = <span class="hljs-number">1</span>;
+&#125;</code></pre></div>
+<p>使用protoc-gen-go生成go代码。</p>
+<p>接着将以前的HTTP报文的主体部分改成用protobuf编码。主要是<code>ServeHTTP</code>的响应报文的body部分、客户端<code>Get</code>方法对于响应报文进行解码、改变调用<code>PeerGetter</code>方法。</p>
+
             </article>
             <hr>
             <div>
