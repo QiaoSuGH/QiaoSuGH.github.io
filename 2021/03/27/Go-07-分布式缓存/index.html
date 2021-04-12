@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.5k 字
+      2.4k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      16
+      26
        分钟
     </span>
   
@@ -204,7 +204,21 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h4><h5 id="整体获取缓存的逻辑："><a href="#整体获取缓存的逻辑：" class="headerlink" title="整体获取缓存的逻辑："></a>整体获取缓存的逻辑：</h5><div class="hljs"><pre><code class="hljs go">                            是
+              <h4 id="分布式缓存"><a href="#分布式缓存" class="headerlink" title="分布式缓存"></a>分布式缓存</h4><h5 id="memcache"><a href="#memcache" class="headerlink" title="memcache"></a>memcache</h5><ul>
+<li><p>C-S架构，服务器之间并不会通信，由客户端负责决定使用哪个节点——一致性哈希。</p>
+<p><img src="https://i.loli.net/2021/04/11/f7qyuZFKb4GpXY5.png" srcset="/img/loading.gif" alt="image-20210411210109813" style="zoom: 50%;" /></p>
+</li>
+<li><p>内存分配也是多级的结构：<code>slab_class_t[200]</code>，每一个对应的item的大小不同，增长因子可以设置。每一个<code>slab_class_t</code>结构体拥有诸多的<code>slab</code>，每个<code>slab</code>是由<code>chunk</code>构成的双向链表——LRU链表，大小1M。分配时根据item的大小找到合适的<code>slab_class_t</code>，然后找到空闲的<code>chunk</code>。</p>
+</li>
+</ul>
+<h5 id="redis"><a href="#redis" class="headerlink" title="redis"></a>redis</h5><h5 id="groupcache"><a href="#groupcache" class="headerlink" title="groupcache"></a>groupcache</h5><h4 id="缓存淘汰算法"><a href="#缓存淘汰算法" class="headerlink" title="缓存淘汰算法"></a>缓存淘汰算法</h4><h5 id="LRU"><a href="#LRU" class="headerlink" title="LRU"></a>LRU</h5><ul>
+<li><p>最近最少使用——主要是根据使用的时间来决定淘汰与否。优先淘汰最久未使用的</p>
+</li>
+<li><p>缺点：偶然的、周期性的批量操作会导致命中率下降——缓存被污染。因为其主要是根据访问时间来决定淘汰与否的。</p>
+</li>
+<li>优点：实现简单，时间复杂度低。</li>
+</ul>
+<h5 id="ARC"><a href="#ARC" class="headerlink" title="ARC"></a>ARC</h5><h5 id="LRU-k"><a href="#LRU-k" class="headerlink" title="LRU-k"></a>LRU-k</h5><h4 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h4><h5 id="整体获取缓存的逻辑："><a href="#整体获取缓存的逻辑：" class="headerlink" title="整体获取缓存的逻辑："></a>整体获取缓存的逻辑：</h5><div class="hljs"><pre><code class="hljs go">                            是
 接收 key --&gt; 检查是否被缓存 -----&gt; 返回缓存值 ⑴
                 |  否                         是
                 |-----&gt; 是否应当从远程节点获取 -----&gt; 与远程节点交互 --&gt; 返回缓存值 ⑵
@@ -300,7 +314,40 @@
 <ul>
 <li>我们的客户端的表示是结构体<code>httpGetter</code>，只有一个<code>baseURL</code>字段，用于构造请求。</li>
 </ul>
-
+<h4 id="Protobuf"><a href="#Protobuf" class="headerlink" title="Protobuf"></a>Protobuf</h4><h5 id="序列化与反序列化"><a href="#序列化与反序列化" class="headerlink" title="序列化与反序列化"></a>序列化与反序列化</h5><p>我们知道程序都是运行在内存中的，所有的数据在内存中都是一个个的01比特。如果我们将内存中的对象传输到远程节点，怎么讲01的比特流恢复成我们原本的对象？这就需要指定两种表示方式之间的转化规则——这就是序列化和反序列化。</p>
+<p>从OSI七层模型的角度考虑，其实表示层的作用就是将应用层的数据/对象转化成二进制串。从TCP/IP协议的角度考虑，序列化和反序列化属于应用层。</p>
+<p>如何去衡量一个序列化协议？</p>
+<ul>
+<li>通用性：是否支持跨平台跨语言；生态是否完善</li>
+<li>鲁棒性</li>
+<li>可调式性/可读性</li>
+<li>性能：时间/空间开销</li>
+<li>可扩展性/兼容性</li>
+<li>等等</li>
+</ul>
+<blockquote>
+<p>典型的序列化和反序列化过程往往需要如下组件：</p>
+<ul>
+<li>IDL（Interface description language）文件：参与通讯的各方需要对通讯的内容需要做相关的约定（Specifications）。为了建立一个与语言和平台无关的约定，这个约定需要采用与具体开发语言、平台无关的语言来进行描述。这种语言被称为接口描述语言（IDL），采用IDL撰写的协议约定称之为IDL文件。</li>
+<li>IDL Compiler：IDL文件中约定的内容为了在各语言和平台可见，需要有一个编译器，将IDL文件转换成各语言对应的动态库。</li>
+<li>Stub/Skeleton Lib：负责序列化和反序列化的工作代码。Stub是一段部署在分布式系统客户端的代码，一方面接收应用层的参数，并对其序列化后通过底层协议栈发送到服务端，另一方面接收服务端序列化后的结果数据，反序列化后交给客户端应用层；Skeleton部署在服务端，其功能与Stub相反，从传输层接收序列化参数，反序列化后交给服务端应用层，并将应用层的执行结果序列化后最终传送给客户端Stub。</li>
+<li>Client/Server：指的是应用层程序代码，他们面对的是IDL所生存的特定语言的class或struct。</li>
+<li>底层协议栈和互联网：序列化之后的数据通过底层的传输层、网络层、链路层以及物理层协议转换成数字信号在互联网中传递。</li>
+</ul>
+</blockquote>
+<h5 id="protobuf的特点"><a href="#protobuf的特点" class="headerlink" title="protobuf的特点"></a>protobuf的特点</h5><blockquote>
+<ul>
+<li><p>标准的IDL和IDL编译器，这使得其对工程师非常友好。</p>
+</li>
+<li><p>序列化数据非常简洁，紧凑，与XML相比，其序列化之后的数据量约为1/3到1/10。</p>
+</li>
+<li><p>解析速度非常快，比对应的XML快约20-100倍。</p>
+</li>
+<li><p>提供了非常友好的动态库，使用非常简介，反序列化只需要一行代码。</p>
+</li>
+</ul>
+</blockquote>
+<h5 id="Go中使用protobuf"><a href="#Go中使用protobuf" class="headerlink" title="Go中使用protobuf"></a>Go中使用protobuf</h5>
             </article>
             <hr>
             <div>
