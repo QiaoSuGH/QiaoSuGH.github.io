@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.3k 字
+      1.7k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      17
+      22
        分钟
     </span>
   
@@ -273,13 +273,57 @@
 </ul>
 </li>
 </ul>
-<h5 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h5><ul>
-<li>如何退出</li>
-</ul>
-<h4 id="共享变量"><a href="#共享变量" class="headerlink" title="共享变量"></a>共享变量</h4><h5 id="互斥锁"><a href="#互斥锁" class="headerlink" title="互斥锁"></a>互斥锁</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
+<h4 id="sync包"><a href="#sync包" class="headerlink" title="sync包"></a>sync包</h4><h5 id="互斥锁Mutex"><a href="#互斥锁Mutex" class="headerlink" title="互斥锁Mutex"></a>互斥锁Mutex</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> mu sync.Mutex
 mu.Lock()
 mu.Unlock()</code></pre></div>
+<h5 id="读写锁RWMutex"><a href="#读写锁RWMutex" class="headerlink" title="读写锁RWMutex"></a>读写锁RWMutex</h5><h5 id="sync-Once"><a href="#sync-Once" class="headerlink" title="sync.Once"></a><code>sync.Once</code></h5><p>顾名思义，可以确保某个函数只执行一次，而且是并发安全的，一般可以用来初始化变量。</p>
+<p>实现原理也非常简单：标记函数是否执行过；没有，那么使用互斥锁，执行，并标记。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">package</span> sync
+
+<span class="hljs-keyword">import</span> (
+    <span class="hljs-string">"sync/atomic"</span>
+)
+
+<span class="hljs-keyword">type</span> Once <span class="hljs-keyword">struct</span> &#123;
+    done <span class="hljs-keyword">uint32</span>
+    m    Mutex
+&#125;
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(o *Once)</span> <span class="hljs-title">Do</span><span class="hljs-params">(f <span class="hljs-keyword">func</span>()</span>)</span> &#123;
+    <span class="hljs-keyword">if</span> atomic.LoadUint32(&amp;o.done) == <span class="hljs-number">0</span> &#123;
+        o.doSlow(f)
+    &#125;
+&#125;
+
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(o *Once)</span> <span class="hljs-title">doSlow</span><span class="hljs-params">(f <span class="hljs-keyword">func</span>()</span>)</span> &#123;
+    o.m.Lock()
+    <span class="hljs-keyword">defer</span> o.m.Unlock()
+    <span class="hljs-keyword">if</span> o.done == <span class="hljs-number">0</span> &#123;
+        <span class="hljs-keyword">defer</span> atomic.StoreUint32(&amp;o.done, <span class="hljs-number">1</span>)
+        f()
+    &#125;
+&#125;</code></pre></div>
+<p>值得注意的是注释部分：</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Once <span class="hljs-keyword">struct</span> &#123;
+    <span class="hljs-comment">// done indicates whether the action has been performed.</span>
+    <span class="hljs-comment">// It is first in the struct because it is used in the hot path.</span>
+    <span class="hljs-comment">// The hot path is inlined at every call site.</span>
+    <span class="hljs-comment">// Placing done first allows more compact instructions on some architectures (amd64/x86),</span>
+    <span class="hljs-comment">// and fewer instructions (to calculate offset) on other architectures.</span>
+    done <span class="hljs-keyword">uint32</span>
+    m    Mutex
+&#125;</code></pre></div>
+<p>解释：对于结构体的第一个字段的访问可以通过直接对指针解引用得到，但是之后的字段则需要加上一个偏移量——前者无疑更快速。从而将访问较多的<code>done</code>放到第一位可以提升性能。</p>
+<h5 id="sync-Pool"><a href="#sync-Pool" class="headerlink" title="sync.Pool"></a><code>sync.Pool</code></h5><p>保存和复用临时对象，从而减少内存分配、降低GC压力。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Pool <span class="hljs-keyword">struct</span> &#123;
+    <span class="hljs-comment">// New optionally specifies a function to generate</span>
+    <span class="hljs-comment">// a value when Get would otherwise return nil.</span>
+    <span class="hljs-comment">// It may not be changed concurrently with calls to Get.</span>
+    New <span class="hljs-function"><span class="hljs-keyword">func</span><span class="hljs-params">()</span> <span class="hljs-title">interface</span></span>&#123;&#125;
+    <span class="hljs-comment">// contains filtered or unexported fields</span>
+&#125;</code></pre></div>
+<p>创建时可以定义一个返回空接口的函数。</p>
 <h4 id="Context包"><a href="#Context包" class="headerlink" title="Context包"></a>Context包</h4><h4 id="实际场景应用"><a href="#实际场景应用" class="headerlink" title="实际场景应用"></a>实际场景应用</h4><h5 id="结束goroutine"><a href="#结束goroutine" class="headerlink" title="结束goroutine"></a>结束goroutine</h5><ul>
 <li><p>单个：A结束B：使用channel+select的方式。</p>
 <p>我们可以在A中创建一个channel，在B中for循环select监听该channel。A想要结束B，就发送消息，那么B select满足条件之后结束退出。</p>

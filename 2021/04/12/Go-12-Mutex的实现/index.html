@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Go-11-OOP in Go - TATOVO&#39;s blog</title>
+  <title>Go-12-Mutex的实现 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-04-11 15:20">
-      2021年4月11日 下午
+    <time datetime="2021-04-12 20:00">
+      2021年4月12日 晚上
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      396 字
+      1k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      5
+      13
        分钟
     </span>
   
@@ -204,33 +204,113 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <p>ToDoList：</p>
-<ul>
-<li>如何理解OOP</li>
-<li>为什么Go没有类似于C++/JAVA中的实现</li>
-<li>如何使用Go去解决适合OOP解决的问题</li>
-</ul>
+              <h4 id="性质"><a href="#性质" class="headerlink" title="性质"></a>性质</h4><p>根据<a href="https://github.com/golang/go/blob/41d8e61a6b9d8f9db912626eb2bbc535e929fefc/src/sync/mutex.go#L25" target="_blank" rel="noopener">注释</a>可知，互斥锁有如下性质：</p>
 <blockquote>
-<p>发现事情逐渐变得不可控——因为我并没有“架构”上的经验。</p>
-<p>所以还是回到最初的问题——如何使用Go的method/interface。</p>
+<p>互斥锁有两种状态：正常状态和饥饿状态。</p>
+<p>在正常状态下，所有等待锁的 goroutine 按照FIFO顺序等待。唤醒的 goroutine 不会直接拥有锁，而是会和新请求锁的 goroutine 竞争锁的拥有。新请求锁的 goroutine 具有优势：它正在 CPU 上执行，而且可能有好几个，所以刚刚唤醒的 goroutine 有很大可能在锁竞争中失败。在这种情况下，这个被唤醒的 goroutine 会加入到等待队列的前面。 如果一个等待的 goroutine 超过 1ms 没有获取锁，那么它将会把锁转变为饥饿模式。</p>
+<p>在饥饿模式下，锁的所有权将从 unlock 的 goroutine 直接交给交给等待队列中的第一个。新来的 goroutine 将不会尝试去获得锁，即使锁看起来是 unlock 状态, 也不会去尝试自旋操作，而是放在等待队列的尾部。</p>
+<p>如果一个等待的 goroutine 获取了锁，并且满足一以下其中的任何一个条件：(1)它是队列中的最后一个；(2)它等待的时候小于1ms。它会将锁的状态转换为正常状态。</p>
+<p>正常状态有很好的性能表现，饥饿模式也是非常重要的，因为它能阻止尾部延迟的现象。</p>
 </blockquote>
-<hr>
-<h5 id="如何理解OOP"><a href="#如何理解OOP" class="headerlink" title="如何理解OOP"></a>如何理解OOP</h5><p>简单来说，这是一种设计思想——如何架构一个比较复杂的项目/程序？一种方式是抽象出很多节点，节点内部的状态是隐藏的，节点之间通过传递消息来改变状态。</p>
-<p>为了方便这种想法的落地，我们有了封装、继承和多态等特性。</p>
-<hr>
-<h5 id="Is-Go-an-object-oriented-language"><a href="#Is-Go-an-object-oriented-language" class="headerlink" title="Is Go an object-oriented language?"></a><a href="https://golang.org/doc/faq#Is_Go_an_object-oriented_language" target="_blank" rel="noopener">Is Go an object-oriented language?</a></h5><p>Yes and no. Although Go has types and methods and allows an object-oriented style of programming, there is no type hierarchy. The concept of “interface” in Go provides a different approach that we believe is easy to use and in some ways more general. There are also ways to embed types in other types to provide something analogous—but not identical—to subclassing. Moreover, methods in Go are more general than in C++ or Java: they can be defined for any sort of data, even built-in types such as plain, “unboxed” integers. They are not restricted to structs (classes).</p>
-<p>Also, the lack of a type hierarchy makes “objects” in Go feel much more lightweight than in languages such as C++ or Java.</p>
-<hr>
-<h5 id="导出的方法构造未导出的结构体"><a href="#导出的方法构造未导出的结构体" class="headerlink" title="导出的方法构造未导出的结构体"></a>导出的方法构造未导出的结构体</h5><p>如果我们并不希望导出某个包中的结构体但是确实需要使用，一种可行的模式是实现<code>func New(args)type receiver</code>函数从而返回构造之后的实例。</p>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">//package test</span>
-<span class="hljs-keyword">struct</span> test&#123;
-    name <span class="hljs-keyword">string</span>
+<h4 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h4><h5 id="Mutex结构体"><a href="#Mutex结构体" class="headerlink" title="Mutex结构体"></a>Mutex结构体</h5><div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Mutex <span class="hljs-keyword">struct</span> &#123;
+	state <span class="hljs-keyword">int32</span>
+	sema  <span class="hljs-keyword">uint32</span>
+&#125;</code></pre></div>
+<p><code>state</code>总共32位，低三位分别表示 <code>mutexLocked</code>、<code>mutexWoken</code> 和 <code>mutexStarving</code></p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">const</span> (
+	mutexLocked = <span class="hljs-number">1</span> &lt;&lt; <span class="hljs-literal">iota</span> <span class="hljs-comment">// mutex is locked</span>
+	mutexWoken <span class="hljs-comment">//表示某个唤醒的goroutine想要获取锁</span>
+	mutexStarving <span class="hljs-comment">//饥饿模式</span>
+	mutexWaiterShift = <span class="hljs-literal">iota</span> <span class="hljs-comment">//通过state&gt;&gt;mutexWaiterShift得到等待锁的goroutine个数</span>
+	starvationThresholdNs = <span class="hljs-number">1e6</span>
+)</code></pre></div>
+<h5 id="加锁"><a href="#加锁" class="headerlink" title="加锁"></a>加锁</h5><p><a href="https://en.wikipedia.org/wiki/Fast_path" target="_blank" rel="noopener">Fast path</a>：简单来说，将最可能的情况/最频繁执行的部分放到前面，各种少见的情况放到后面，这样可以减少不必要的判断。</p>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">// Lock locks m.</span>
+<span class="hljs-comment">// If the lock is already in use, the calling goroutine</span>
+<span class="hljs-comment">// blocks until the mutex is available.</span>
+<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *Mutex)</span> <span class="hljs-title">Lock</span><span class="hljs-params">()</span></span> &#123;
+	<span class="hljs-comment">// Fast path: grab unlocked mutex.</span>
+	<span class="hljs-keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, <span class="hljs-number">0</span>, mutexLocked) &#123;
+		<span class="hljs-keyword">if</span> race.Enabled &#123;
+			race.Acquire(unsafe.Pointer(m))
+		&#125;
+		<span class="hljs-keyword">return</span>
+	&#125;
+	<span class="hljs-comment">// Slow path (outlined so that the fast path can be inlined)</span>
+	m.lockSlow()
+&#125;</code></pre></div>
+<p>这里的<code>lockSlow()</code>比较复杂，包括了一下逻辑：</p>
+<ul>
+<li><p>判断当前 Goroutine 能否进入自旋；</p>
+</li>
+<li><p>通过自旋等待互斥锁的释放；</p>
+</li>
+<li><p>计算互斥锁的最新状态；</p>
+</li>
+<li><p>更新互斥锁的状态并获取锁</p>
+</li>
+</ul>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *Mutex)</span> <span class="hljs-title">lockSlow</span><span class="hljs-params">()</span></span> &#123;
+	<span class="hljs-keyword">var</span> waitStartTime <span class="hljs-keyword">int64</span> 
+	starving := <span class="hljs-literal">false</span>
+	awoke := <span class="hljs-literal">false</span>
+	iter := <span class="hljs-number">0</span> <span class="hljs-comment">//自旋次数</span>
+	old := m.state
+	<span class="hljs-keyword">for</span> &#123;
+		<span class="hljs-comment">// Don't spin in starvation mode, ownership is handed off to waiters</span>
+		<span class="hljs-comment">// so we won't be able to acquire the mutex anyway.</span>
+		<span class="hljs-keyword">if</span> old&amp;(mutexLocked|mutexStarving) == mutexLocked &amp;&amp; runtime_canSpin(iter) &#123;
+			<span class="hljs-comment">// Active spinning makes sense.</span>
+			<span class="hljs-comment">// Try to set mutexWoken flag to inform Unlock</span>
+			<span class="hljs-comment">// to not wake other blocked goroutines.</span>
+            
+            <span class="hljs-comment">//如果当前goroutine没有设为唤醒状态、等待队列当中存在goroutine、锁的状态没有更新</span>
+            <span class="hljs-comment">//那么将当前goroutine设为唤醒状态，并且更新锁的状态</span>
+			<span class="hljs-keyword">if</span> !awoke &amp;&amp; old&amp;mutexWoken == <span class="hljs-number">0</span> &amp;&amp; old&gt;&gt;mutexWaiterShift != <span class="hljs-number">0</span> &amp;&amp;
+				atomic.CompareAndSwapInt32(&amp;m.state, old, old|mutexWoken) &#123;
+				awoke = <span class="hljs-literal">true</span>
+			&#125;
+            <span class="hljs-comment">//执行30次PAUSE指令</span>
+			runtime_doSpin()
+			iter++
+			old = m.state
+			<span class="hljs-keyword">continue</span>
+		&#125;
+        <span class="hljs-comment">//此时 或者已经结束自旋 或者可以上锁了 或者处于饥饿模式</span></code></pre></div>
+<p>解释：</p>
+<ul>
+<li><p><code>old&amp;(mutexLocked|mutexStarving) == mutexLocked</code>为真即表示当前锁处于锁定状态并且不处于饥饿模式</p>
+</li>
+<li><p><code>runtime_canSpin(iter)</code>为真：</p>
+</li>
+<li><p>运行在多 CPU 的机器上；</p>
+</li>
+<li><p>当前 Goroutine 为了获取该锁进入自旋的次数小于四次；</p>
+</li>
+<li><p>当前机器上至少存在一个正在运行的处理器 P 并且处理的运行队列为空；</p>
+</li>
+</ul>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-built_in">new</span> := old
+<span class="hljs-keyword">if</span> old&amp;mutexStarving == <span class="hljs-number">0</span> &#123;
+    <span class="hljs-comment">//非饥饿模式下抢锁</span>
+	<span class="hljs-built_in">new</span> |= mutexLocked
 &#125;
-<span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">New</span><span class="hljs-params">(s <span class="hljs-keyword">string</span>)</span><span class="hljs-title">test</span></span>&#123;
-    <span class="hljs-keyword">return</span> test&#123;name:s&#125;
+<span class="hljs-keyword">if</span> old&amp;(mutexLocked|mutexStarving) != <span class="hljs-number">0</span> &#123;
+    <span class="hljs-comment">//如果已经上锁了或者处于饥饿模式 那么将当前g阻塞——等待的g数量+1</span>
+	<span class="hljs-built_in">new</span> += <span class="hljs-number">1</span> &lt;&lt; mutexWaiterShift
 &#125;
-<span class="hljs-comment">//package main</span>
-a := test.New(<span class="hljs-string">"TEST"</span>)</code></pre></div>
+<span class="hljs-keyword">if</span> starving &amp;&amp; old&amp;mutexLocked != <span class="hljs-number">0</span> &#123;
+    <span class="hljs-comment">//如果当前g处于饥饿模式 并且锁为锁定状态——否则可以直接赋给g 将锁转为饥饿模式</span>
+	<span class="hljs-built_in">new</span> |= mutexStarving
+&#125;
+<span class="hljs-keyword">if</span> awoke &#123;
+    <span class="hljs-comment">// The goroutine has been woken from sleep,</span>
+	<span class="hljs-comment">// so we need to reset the flag in either case.</span>
+	<span class="hljs-keyword">if</span> <span class="hljs-built_in">new</span>&amp;mutexWoken == <span class="hljs-number">0</span> &#123;
+		throw(<span class="hljs-string">"sync: inconsistent mutex state"</span>)
+	&#125;
+	<span class="hljs-built_in">new</span> &amp;^= mutexWoken
+&#125;</code></pre></div>
 
             </article>
             <hr>
@@ -261,18 +341,12 @@ a := test.New(<span class="hljs-string">"TEST"</span>)</code></pre></div>
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/04/12/Go-12-Mutex%E7%9A%84%E5%AE%9E%E7%8E%B0/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Go-12-Mutex的实现</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/04/06/Go-10-map%E7%9A%84%E5%AE%9E%E7%8E%B0/">
-                        <span class="hidden-mobile">Go-10-map的实现</span>
+                      <a href="/2021/04/11/Go-11-OOP-in-Go/">
+                        <span class="hidden-mobile">Go-11-OOP in Go</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -411,7 +485,7 @@ a := test.New(<span class="hljs-string">"TEST"</span>)</code></pre></div>
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Go-11-OOP in Go&nbsp;",
+        "Go-12-Mutex的实现&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

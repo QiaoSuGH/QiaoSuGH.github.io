@@ -168,6 +168,49 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/04/12/Go-12-Mutex%E7%9A%84%E5%AE%9E%E7%8E%B0/">Go-12-Mutex的实现</a>
+
+      <a href="/2021/04/12/Go-12-Mutex%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="index-excerpt">
+        
+        
+          
+        
+        <div>性质根据注释可知，互斥锁有如下性质：
+
+互斥锁有两种状态：正常状态和饥饿状态。
+在正常状态下，所有等待锁的 goroutine 按照FIFO顺序等待。唤醒的 goroutine 不会直接拥有锁，而是会和新请求锁的 goroutine 竞争锁的拥有。新请求锁的 goroutine 具有优势：它正在 CPU 上执行，而且可能有好几个，所以刚刚唤醒的 goroutine 有很大可能在锁竞争中失败。在这种</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-04-12
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/04/11/Go-11-OOP-in-Go/">Go-11-OOP in Go</a>
 
       <a href="/2021/04/11/Go-11-OOP-in-Go/" class="index-excerpt">
@@ -415,11 +458,14 @@ http.HandleFunc(pattern,相应的处理函数P)
         
           
         
-        <div>分布式缓存memcache
+        <div>
+使用Go仿照groupcache实现分布式缓存的教程：https://geektutu.com/post/geecache.html
+
+分布式缓存memcache
 C-S架构，服务器之间并不会通信，由客户端负责决定使用哪个节点——一致性哈希。
 
 
-内存分配也是多级的结构：slab_class_t[200]，每一个对应的item的大小不同，增长因子可以设置。每一个slab_class_t结构体拥有诸多的slab，每个slab是由chunk构成的双向链表——LRU链表，大小1M。分配时根据item的大小找到合适的slab_class_</div>
+内存分配也是多级的结构：slab_class_t[200]，每一个对应的item的大小不同，增长因子可以设置。每一个slab_class_t结构体拥有</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -588,51 +634,11 @@ Go采用多级缓存内存分配
     </div>
   </div>
 
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/03/16/Go-02-%E6%8E%A5%E5%8F%A3%E4%B8%8E%E5%8F%8D%E5%B0%84/">Go-02-接口与反射</a>
-
-      <a href="/2021/03/16/Go-02-%E6%8E%A5%E5%8F%A3%E4%B8%8E%E5%8F%8D%E5%B0%84/" class="index-excerpt">
-        
-        
-          
-        
-        <div></div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-03-16
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/Go/">Go</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Go/">Go</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
 
 
   <nav aria-label="navigation">
     <span class="pagination" id="pagination">
-      <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="extend next" rel="next" href="/page/2/"><i class="iconfont icon-arrowright"></i></a>
+      <span class="page-number current">1</span><a class="page-number" href="/page/2/">2</a><a class="page-number" href="/page/3/">3</a><a class="extend next" rel="next" href="/page/2/"><i class="iconfont icon-arrowright"></i></a>
     </span>
   </nav>
   
