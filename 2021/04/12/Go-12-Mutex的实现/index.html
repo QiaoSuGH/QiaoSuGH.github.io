@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1k 字
+      1.8k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      13
+      23
        分钟
     </span>
   
@@ -212,6 +212,20 @@
 <p>如果一个等待的 goroutine 获取了锁，并且满足一以下其中的任何一个条件：(1)它是队列中的最后一个；(2)它等待的时候小于1ms。它会将锁的状态转换为正常状态。</p>
 <p>正常状态有很好的性能表现，饥饿模式也是非常重要的，因为它能阻止尾部延迟的现象。</p>
 </blockquote>
+<p>除了上面两种模式，还有一个<code>woken</code>模式，即唤醒标记，主要用作自旋状态的通知和锁公平性的保证。</p>
+<ul>
+<li>新的goroutine申请锁时，如果锁被占用了而且满足自旋的条件，那么自旋，并且对锁标记woken。那么占用锁的goroutine在释放锁时会检查该标记，如果已经标记了，那么并不会去唤醒阻塞队列上面的goroutine，而是直接return，从而使得自旋的goroutine有更大的机会抢到锁。</li>
+<li>释放锁时如果woken标记为空，而且阻塞队列里goroutine需要被唤醒，那么唤醒时标记锁woken。这样新来的goroutine不会直接获取到锁，而是进入<code>slowpath</code>。否则，g被唤醒之后，还需要等调度器调度、运行，那么这期间可能锁被抢走了，不太公平。</li>
+</ul>
+<h5 id="自旋"><a href="#自旋" class="headerlink" title="自旋"></a>自旋</h5><p>考虑如果不自旋，那么正常状态下所有g都在等待队列中——有可能临界区代码执行时间很短，这时候先阻塞再唤醒带来的切换成本比较高。而空闲资源充足的情况下自旋可以带来更高的效率。</p>
+<h5 id="公平"><a href="#公平" class="headerlink" title="公平"></a>公平</h5><ul>
+<li><p>在锁释放时，主动设置Woken标记，防止新的竞争者轻易抢到锁。</p>
+</li>
+<li><p>竞争者进阻塞队列策略不一样。新的竞争者，抢不到锁，就排在队列尾部。先来竞争者，从队列中被唤醒后，还是抢不到锁，就放在队列头部。</p>
+</li>
+<li><p>任何竞争者，被阻塞等待的时间超过指定阀值(1ms)。锁就转为饥饿模式。这时锁释放时会唤醒它们，手递手式把锁资源给它们。别的竞争者（包括新来的）都抢不到。直到把饥饿问题解决掉。</p>
+</li>
+</ul>
 <h4 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h4><h5 id="Mutex结构体"><a href="#Mutex结构体" class="headerlink" title="Mutex结构体"></a>Mutex结构体</h5><div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">type</span> Mutex <span class="hljs-keyword">struct</span> &#123;
 	state <span class="hljs-keyword">int32</span>
 	sema  <span class="hljs-keyword">uint32</span>
@@ -275,14 +289,13 @@
 			iter++
 			old = m.state
 			<span class="hljs-keyword">continue</span>
-		&#125;
-        <span class="hljs-comment">//此时 或者已经结束自旋 或者可以上锁了 或者处于饥饿模式</span></code></pre></div>
+		&#125;</code></pre></div>
 <p>解释：</p>
 <ul>
 <li><p><code>old&amp;(mutexLocked|mutexStarving) == mutexLocked</code>为真即表示当前锁处于锁定状态并且不处于饥饿模式</p>
 </li>
 <li><p><code>runtime_canSpin(iter)</code>为真：</p>
-</li>
+<ul>
 <li><p>运行在多 CPU 的机器上；</p>
 </li>
 <li><p>当前 Goroutine 为了获取该锁进入自旋的次数小于四次；</p>
@@ -290,7 +303,18 @@
 <li><p>当前机器上至少存在一个正在运行的处理器 P 并且处理的运行队列为空；</p>
 </li>
 </ul>
-<div class="hljs"><pre><code class="hljs go"><span class="hljs-built_in">new</span> := old
+</li>
+</ul>
+<div class="hljs"><pre><code class="hljs go"><span class="hljs-comment">/*</span>
+<span class="hljs-comment">此时状态可能：</span>
+<span class="hljs-comment">锁被获取 且 正常</span>
+<span class="hljs-comment">锁被获取 且 饥饿</span>
+<span class="hljs-comment">锁空闲 且 正常 --&gt;结束自旋，尝试去获取锁</span>
+<span class="hljs-comment">锁空闲 且 饥饿 --&gt;注意假设锁处于饥饿模式 恢复正常的条件尚未满足</span>
+<span class="hljs-comment"></span>
+<span class="hljs-comment">g可能处于唤醒或者未唤醒的状态</span>
+<span class="hljs-comment">*/</span>
+<span class="hljs-built_in">new</span> := old
 <span class="hljs-keyword">if</span> old&amp;mutexStarving == <span class="hljs-number">0</span> &#123;
     <span class="hljs-comment">//非饥饿模式下抢锁</span>
 	<span class="hljs-built_in">new</span> |= mutexLocked
@@ -310,7 +334,43 @@
 		throw(<span class="hljs-string">"sync: inconsistent mutex state"</span>)
 	&#125;
 	<span class="hljs-built_in">new</span> &amp;^= mutexWoken
-&#125;</code></pre></div>
+&#125;
+<span class="hljs-keyword">if</span> atomic.CompareAndSwapInt32(&amp;m.state, old, <span class="hljs-built_in">new</span>) &#123;
+			<span class="hljs-keyword">if</span> old&amp;(mutexLocked|mutexStarving) == <span class="hljs-number">0</span> &#123;
+                <span class="hljs-comment">//因为old状态为正常模式且没有锁定——结合上面的判断，可以确定新的状态已经锁定，当前g获得锁，直接退出循环</span>
+				<span class="hljs-keyword">break</span> <span class="hljs-comment">// locked the mutex with CAS</span>
+			&#125;
+			<span class="hljs-comment">// If we were already waiting before, queue at the front of the queue.</span>
+			queueLifo := waitStartTime != <span class="hljs-number">0</span>
+			<span class="hljs-keyword">if</span> waitStartTime == <span class="hljs-number">0</span> &#123;
+				waitStartTime = runtime_nanotime()
+			&#125;
+			runtime_SemacquireMutex(&amp;m.sema, queueLifo, <span class="hljs-number">1</span>)
+			starving = starving || runtime_nanotime()-waitStartTime &gt; starvationThresholdNs
+			old = m.state
+			<span class="hljs-keyword">if</span> old&amp;mutexStarving != <span class="hljs-number">0</span> &#123;
+				<span class="hljs-comment">// If this goroutine was woken and mutex is in starvation mode,</span>
+				<span class="hljs-comment">// ownership was handed off to us but mutex is in somewhat</span>
+				<span class="hljs-comment">// inconsistent state: mutexLocked is not set and we are still</span>
+				<span class="hljs-comment">// accounted as waiter. Fix that.</span>
+				<span class="hljs-keyword">if</span> old&amp;(mutexLocked|mutexWoken) != <span class="hljs-number">0</span> || old&gt;&gt;mutexWaiterShift == <span class="hljs-number">0</span> &#123;
+					throw(<span class="hljs-string">"sync: inconsistent mutex state"</span>)
+				&#125;
+				delta := <span class="hljs-keyword">int32</span>(mutexLocked - <span class="hljs-number">1</span>&lt;&lt;mutexWaiterShift)
+				<span class="hljs-keyword">if</span> !starving || old&gt;&gt;mutexWaiterShift == <span class="hljs-number">1</span> &#123;
+					<span class="hljs-comment">// Exit starvation mode.</span>
+					<span class="hljs-comment">// Critical to do it here and consider wait time.</span>
+					<span class="hljs-comment">// Starvation mode is so inefficient, that two goroutines</span>
+					<span class="hljs-comment">// can go lock-step infinitely once they switch mutex</span>
+					<span class="hljs-comment">// to starvation mode.</span>
+					delta -= mutexStarving
+				&#125;
+				atomic.AddInt32(&amp;m.state, delta)
+				<span class="hljs-keyword">break</span>
+			&#125;
+			awoke = <span class="hljs-literal">true</span>
+			iter = <span class="hljs-number">0</span>
+		&#125;</code></pre></div>
 
             </article>
             <hr>
