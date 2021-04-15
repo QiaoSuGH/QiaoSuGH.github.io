@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.7k 字
+      1.8k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      22
+      23
        分钟
     </span>
   
@@ -273,7 +273,11 @@
 </ul>
 </li>
 </ul>
-<h5 id="关闭channel"><a href="#关闭channel" class="headerlink" title="关闭channel"></a>关闭channel</h5><h4 id="sync包"><a href="#sync包" class="headerlink" title="sync包"></a>sync包</h4><h5 id="互斥锁Mutex"><a href="#互斥锁Mutex" class="headerlink" title="互斥锁Mutex"></a>互斥锁Mutex</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
+<h5 id="关闭channel"><a href="#关闭channel" class="headerlink" title="关闭channel"></a>关闭channel</h5><ul>
+<li>不要从接收端关闭channel，也不要关闭有多个发送者的channel，从而避免panic。</li>
+<li>多生产者消费者的情况下，可以让第三方的goroutine在设定情况——例如<code>wg.Wait()</code>之后关闭channel。或者让最后一个生产者关闭channel也可以。</li>
+</ul>
+<h4 id="sync包"><a href="#sync包" class="headerlink" title="sync包"></a>sync包</h4><h5 id="互斥锁Mutex"><a href="#互斥锁Mutex" class="headerlink" title="互斥锁Mutex"></a>互斥锁Mutex</h5><p>类似于初值为1的信号量，只是用起来更加方便。看上去也非常的暴力。</p>
 <div class="hljs"><pre><code class="hljs go"><span class="hljs-keyword">var</span> mu sync.Mutex
 mu.Lock()
 mu.Unlock()</code></pre></div>
