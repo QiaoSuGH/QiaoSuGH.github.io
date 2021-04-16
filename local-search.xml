@@ -4,11 +4,42 @@
   
   
   <entry>
+    <title>MIT6.824-Lab1-MapReduce</title>
+    <link href="/2021/04/16/MIT6-824-Lab1-MapReduce/"/>
+    <url>/2021/04/16/MIT6-824-Lab1-MapReduce/</url>
+    
+    <content type="html"><![CDATA[<h5 id="分布式系统的特性"><a href="#分布式系统的特性" class="headerlink" title="分布式系统的特性"></a>分布式系统的特性</h5><ul><li><p>可扩展性——性能</p></li><li><p>容错</p><ul><li>可用性</li><li>自我可恢复性</li></ul><p>工具：非易失存储；复制</p></li><li><p>一致性</p><ul><li>强一致性：确保读取到的总是最新的数据；需要很高的代价</li><li>弱一致性</li></ul></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>分布式系统</category>
+      
+      <category>MIT6.824</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>MapReduce</tag>
+      
+      <tag>分布式系统</tag>
+      
+      <tag>MIT6.824</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Go-13-MESI协议与原子操作</title>
     <link href="/2021/04/15/Go-13-MESI%E5%8D%8F%E8%AE%AE%E4%B8%8E%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C/"/>
     <url>/2021/04/15/Go-13-MESI%E5%8D%8F%E8%AE%AE%E4%B8%8E%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C/</url>
     
-    <content type="html"><![CDATA[<h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h4><ul><li><p><a href="https://en.wikipedia.org/wiki/MESI_protocol" target="_blank" rel="noopener">MESI维基百科</a></p></li><li><p><a href="https://en.wikipedia.org/wiki/Cache_coherence" target="_blank" rel="noopener">缓存一致性维基百科</a></p></li></ul><h4 id="状态转移"><a href="#状态转移" class="headerlink" title="状态转移"></a>状态转移</h4><p>维基百科已经给出了状态机以及响应的解释，这里记录一点点更详细的解释作为补充。P：CPU。</p><p><img src="https://i.loli.net/2021/04/15/rGN9UfKpV1Dxca5.png" srcset="/img/loading.gif" alt="image-20210415202913308" style="zoom:67%;" /></p><p>注：黑色表示P引起的转移，<strong>/</strong>后面的表示向总线发出的信号。</p><blockquote><p>Processor Requests to Cache includes the following operations:</p><ol><li>PrRd: The processor requests to <strong>read</strong> a Cache block.</li><li>PrWr: The processor requests to <strong>write</strong> a Cache block</li></ol><p>Bus side requests are the following:</p><ol><li>BusRd: Snooped request that indicates there is a <strong>read</strong> request to a Cache block requested by another processor</li><li>BusRdX: Snooped request that indicates there is a <strong>write</strong> request to a Cache block requested by another processor that <strong>doesn’t already have the block.</strong></li><li>BusUpgr: Snooped request that indicates that there is a write request to a Cache block requested by another processor but that processor already has that <strong>Cache block residing in its own Cache</strong>.</li><li>Flush: Snooped request that indicates that an entire cache block is written back to the main memory by another processor.</li><li>FlushOpt: Snooped request that indicates that an entire cache block is posted on the bus in order to supply it to another processor(Cache to Cache transfers).</li></ol></blockquote><h5 id="状态I"><a href="#状态I" class="headerlink" title="状态I"></a>状态I</h5><ul><li><p>如果是所在P发出的PrRd，那么会向总线发出信号BusRd。其他cache检查是否有并返回响应的信号。</p><ul><li>如果其他cache有valid copy，那么通过bus发送值，当前cache会被更新，状态转为<strong>S</strong></li><li>否则，会从main memory取值进行更新，状态转为<strong>E</strong></li></ul></li><li><p>如果是收到来自bus的请求：BusRd，直接忽略。</p></li><li><p>如果是PrWr，状态转变为<strong>M</strong>，其他缓存如果存有copy那么失效。</p></li></ul><h5 id="实现LOCK指令"><a href="#实现LOCK指令" class="headerlink" title="实现LOCK指令"></a>实现LOCK指令</h5><p>为什么保持住M、E状态即可？</p><ul><li>如果当前状态为I——假设为写操作，向总线发送<code>BusRdX</code>，如果其他缓存有copy，例如如果是M状态，那么会<code>Put FlushOpt on Bus with data.Received by sender of BusRdx and Memory Controller, which writes to Main memory.</code>同时状态变为I。而当前cache line变为M。</li><li>如果当前状态为s——让其他的失效即可。</li><li>如果为M或者E，那么是独占的，<u>需要解决的是如何阻塞其他的cache的请求？</u></li></ul>]]></content>
+    <content type="html"><![CDATA[<h3 id="MESI协议"><a href="#MESI协议" class="headerlink" title="MESI协议"></a>MESI协议</h3><h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h4><ul><li><p><a href="https://en.wikipedia.org/wiki/MESI_protocol" target="_blank" rel="noopener">MESI维基百科</a></p></li><li><p><a href="https://en.wikipedia.org/wiki/Cache_coherence" target="_blank" rel="noopener">缓存一致性维基百科</a></p></li></ul><h4 id="状态转移"><a href="#状态转移" class="headerlink" title="状态转移"></a>状态转移</h4><p>维基百科已经给出了状态机以及响应的解释，这里记录一点点更详细的解释作为补充。P：CPU。</p><p><img src="https://i.loli.net/2021/04/15/rGN9UfKpV1Dxca5.png" srcset="/img/loading.gif" alt="image-20210415202913308" style="zoom:67%;" /></p><p>注：黑色表示P引起的转移，<strong>/</strong>后面的表示向总线发出的信号。</p><blockquote><p>Processor Requests to Cache includes the following operations:</p><ol><li>PrRd: The processor requests to <strong>read</strong> a Cache block.</li><li>PrWr: The processor requests to <strong>write</strong> a Cache block</li></ol><p>Bus side requests are the following:</p><ol><li>BusRd: Snooped request that indicates there is a <strong>read</strong> request to a Cache block requested by another processor</li><li>BusRdX: Snooped request that indicates there is a <strong>write</strong> request to a Cache block requested by another processor that <strong>doesn’t already have the block.</strong></li><li>BusUpgr: Snooped request that indicates that there is a write request to a Cache block requested by another processor but that processor already has that <strong>Cache block residing in its own Cache</strong>.</li><li>Flush: Snooped request that indicates that an entire cache block is written back to the main memory by another processor.</li><li>FlushOpt: Snooped request that indicates that an entire cache block is posted on the bus in order to supply it to another processor(Cache to Cache transfers).</li></ol></blockquote><h5 id="状态I"><a href="#状态I" class="headerlink" title="状态I"></a>状态I</h5><ul><li><p>如果是所在P发出的PrRd，那么会向总线发出信号BusRd。其他cache检查是否有并返回响应的信号。</p><ul><li>如果其他cache有valid copy，那么通过bus发送值，当前cache会被更新，状态转为<strong>S</strong></li><li>否则，会从main memory取值进行更新，状态转为<strong>E</strong></li></ul></li><li><p>如果是收到来自bus的请求：BusRd，直接忽略。</p></li><li><p>如果是PrWr，状态转变为<strong>M</strong>，其他缓存如果存有copy那么失效。</p></li></ul><h5 id="实现LOCK指令"><a href="#实现LOCK指令" class="headerlink" title="实现LOCK指令"></a>实现LOCK指令</h5><p>为什么保持住M、E状态即可？</p><ul><li><p>如果当前状态为I——假设为写操作，向总线发送<code>BusRdX</code>，如果其他缓存有copy，例如如果是M状态，那么会<code>Put FlushOpt on Bus with data.Received by sender of BusRdx and Memory Controller, which writes to Main memory.</code>同时状态变为I。而当前cache line变为M。</p><p><u>看到有资料介绍说也是让其他的失效，但是不确定正确性。</u></p></li><li><p>如果当前状态为s——让其他的失效即可。</p></li><li><p>如果为M或者E，那么是独占的，<u>需要解决的是如何阻塞其他的cache的请求？</u></p></li></ul>]]></content>
     
     
     <categories>
@@ -235,6 +266,8 @@
     <tags>
       
       <tag>Go</tag>
+      
+      <tag>分布式</tag>
       
     </tags>
     

@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      491 字
+      518 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      6
+      7
        分钟
     </span>
   
@@ -204,7 +204,7 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h4><ul>
+              <h3 id="MESI协议"><a href="#MESI协议" class="headerlink" title="MESI协议"></a>MESI协议</h3><h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h4><ul>
 <li><p><a href="https://en.wikipedia.org/wiki/MESI_protocol" target="_blank" rel="noopener">MESI维基百科</a></p>
 </li>
 <li><p><a href="https://en.wikipedia.org/wiki/Cache_coherence" target="_blank" rel="noopener">缓存一致性维基百科</a></p>
@@ -242,9 +242,13 @@
 </ul>
 <h5 id="实现LOCK指令"><a href="#实现LOCK指令" class="headerlink" title="实现LOCK指令"></a>实现LOCK指令</h5><p>为什么保持住M、E状态即可？</p>
 <ul>
-<li>如果当前状态为I——假设为写操作，向总线发送<code>BusRdX</code>，如果其他缓存有copy，例如如果是M状态，那么会<code>Put FlushOpt on Bus with data.Received by sender of BusRdx and Memory Controller, which writes to Main memory.</code>同时状态变为I。而当前cache line变为M。</li>
-<li>如果当前状态为s——让其他的失效即可。</li>
-<li>如果为M或者E，那么是独占的，<u>需要解决的是如何阻塞其他的cache的请求？</u></li>
+<li><p>如果当前状态为I——假设为写操作，向总线发送<code>BusRdX</code>，如果其他缓存有copy，例如如果是M状态，那么会<code>Put FlushOpt on Bus with data.Received by sender of BusRdx and Memory Controller, which writes to Main memory.</code>同时状态变为I。而当前cache line变为M。</p>
+<p><u>看到有资料介绍说也是让其他的失效，但是不确定正确性。</u></p>
+</li>
+<li><p>如果当前状态为s——让其他的失效即可。</p>
+</li>
+<li><p>如果为M或者E，那么是独占的，<u>需要解决的是如何阻塞其他的cache的请求？</u></p>
+</li>
 </ul>
 
             </article>
@@ -283,6 +287,12 @@
                 <div class="post-prevnext row">
                   <div class="post-prev col-6">
                     
+                    
+                      <a href="/2021/04/16/MIT6-824-Lab1-MapReduce/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">MIT6.824-Lab1-MapReduce</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
                     
                   </div>
                   <div class="post-next col-6">
