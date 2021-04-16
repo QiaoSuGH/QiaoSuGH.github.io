@@ -8,7 +8,7 @@
     <link href="/2021/04/16/MIT6-824-Lab1-MapReduce/"/>
     <url>/2021/04/16/MIT6-824-Lab1-MapReduce/</url>
     
-    <content type="html"><![CDATA[<h5 id="分布式系统的特性"><a href="#分布式系统的特性" class="headerlink" title="分布式系统的特性"></a>分布式系统的特性</h5><ul><li><p>可扩展性——性能</p></li><li><p>容错</p><ul><li>可用性</li><li>自我可恢复性</li></ul><p>工具：非易失存储；复制</p></li><li><p>一致性</p><ul><li>强一致性：确保读取到的总是最新的数据；需要很高的代价</li><li>弱一致性</li></ul></li></ul><h5 id="Go语言层面"><a href="#Go语言层面" class="headerlink" title="Go语言层面"></a>Go语言层面</h5><ul><li><p>插件的使用</p><p><code>go build -buildmode = plugin ...</code></p></li></ul>]]></content>
+    <content type="html"><![CDATA[<h5 id="分布式系统的特性"><a href="#分布式系统的特性" class="headerlink" title="分布式系统的特性"></a>分布式系统的特性</h5><ul><li><p>可扩展性——性能</p></li><li><p>容错</p><ul><li>可用性</li><li>自我可恢复性</li></ul><p>工具：非易失存储；复制</p></li><li><p>一致性</p><ul><li>强一致性：确保读取到的总是最新的数据；需要很高的代价</li><li>弱一致性</li></ul></li></ul><h5 id="Go语言层面"><a href="#Go语言层面" class="headerlink" title="Go语言层面"></a>Go语言层面</h5><ul><li><p>插件的使用</p><p><code>go build -buildmode = plugin ...</code></p><blockquote><p>Plguin 需要有自己的 main package<br>编译的时候，使用 go build -buildmode=plugin file.go 来编译<br>使用 plugin.Open(path string) 来打开.so文件，同一插件只能打开一次，重复打开会报错<br>使用 plugin.LookUp(name string) 来获取插件中对外暴露的方法或者类型<br>使用类型断言，断言后执行相应的方法</p></blockquote><p><code>mrsequential.loadPlugin</code>体现了上面的步骤。</p></li></ul><h5 id="本地的顺序执行的MR"><a href="#本地的顺序执行的MR" class="headerlink" title="本地的顺序执行的MR"></a>本地的顺序执行的MR</h5>]]></content>
     
     
     <categories>

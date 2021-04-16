@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      79 字
+      191 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      2
        分钟
     </span>
   
@@ -224,9 +224,13 @@
 <h5 id="Go语言层面"><a href="#Go语言层面" class="headerlink" title="Go语言层面"></a>Go语言层面</h5><ul>
 <li><p>插件的使用</p>
 <p><code>go build -buildmode = plugin ...</code></p>
+<blockquote>
+<p>Plguin 需要有自己的 main package<br>编译的时候，使用 go build -buildmode=plugin file.go 来编译<br>使用 plugin.Open(path string) 来打开.so文件，同一插件只能打开一次，重复打开会报错<br>使用 plugin.LookUp(name string) 来获取插件中对外暴露的方法或者类型<br>使用类型断言，断言后执行相应的方法</p>
+</blockquote>
+<p><code>mrsequential.loadPlugin</code>体现了上面的步骤。</p>
 </li>
 </ul>
-
+<h5 id="本地的顺序执行的MR"><a href="#本地的顺序执行的MR" class="headerlink" title="本地的顺序执行的MR"></a>本地的顺序执行的MR</h5>
             </article>
             <hr>
             <div>
