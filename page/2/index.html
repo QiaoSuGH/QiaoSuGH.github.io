@@ -168,6 +168,55 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/03/27/Go-07-%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/">Go-07-分布式缓存</a>
+
+      <a href="/2021/03/27/Go-07-%E5%88%86%E5%B8%83%E5%BC%8F%E7%BC%93%E5%AD%98/" class="index-excerpt">
+        
+        
+          
+        
+        <div>
+使用Go仿照groupcache实现分布式缓存的教程：https://geektutu.com/post/geecache.html
+
+分布式缓存memcache
+C-S架构，服务器之间并不会通信，由客户端负责决定使用哪个节点——一致性哈希。
+
+
+内存分配也是多级的结构：slab_class_t[200]，每一个对应的item的大小不同，增长因子可以设置。每一个slab_class_t结构体拥有</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-03-27
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+              <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/03/20/Go-06-sort%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/">Go-06-sort源码分析</a>
 
       <a href="/2021/03/20/Go-06-sort%E6%BA%90%E7%A0%81%E5%88%86%E6%9E%90/" class="index-excerpt">
@@ -567,54 +616,6 @@ https://pdos.</div>
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>&nbsp;2021-03-07
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CS144/">CS144</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/tags/CS144/">CS144</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/03/03/CS144-03-Lab2/">CS144-03-Lab2</a>
-
-      <a href="/2021/03/03/CS144-03-Lab2/" class="index-excerpt">
-        
-        
-          
-        
-        <div>
-读完《TCP/IP详解 卷一：协议》CH12之后对于指导书中的图有了大致的理解，包括TCP头部各个字段的含义。
-TCP接收方需要告诉发送方两方面的信息：
-
-接收方期待的下一个字节在stream中的序号。回想Lab1，我们有first_unread/first_unassembled/first_unacceptable。其中[first_unread, first_unassembled)即为已</div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-03-03
           </div>
         
         

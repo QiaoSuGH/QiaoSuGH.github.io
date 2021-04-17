@@ -4,6 +4,41 @@
   
   
   <entry>
+    <title>CS144-06-关于Sponge</title>
+    <link href="/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/"/>
+    <url>/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/</url>
+    
+    <content type="html"><![CDATA[<p>一个核心问题在于，<code>CS144TCPSocket</code>究竟是如何工作的？我们熟悉了这里TCP的逻辑，但是真正通信还需要两方面的支持：</p><ul><li>上层：<code>CS144TCPSocket</code>是如何封装的？</li><li>下层：这里实际上也实现了<code>IPV4</code>协议，如何使用的？<code>TUN/TAP</code>是如何使用的？</li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>计算机网络</category>
+      
+      <category>CS144</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>计算机网络</tag>
+      
+      <tag>CS144</tag>
+      
+      <tag>TUN</tag>
+      
+      <tag>TAP</tag>
+      
+      <tag>Linux</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>MIT6.824-Lab1-MapReduce</title>
     <link href="/2021/04/16/MIT6-824-Lab1-MapReduce/"/>
     <url>/2021/04/16/MIT6-824-Lab1-MapReduce/</url>
