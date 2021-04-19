@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      328 字
+      629 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      4
+      8
        分钟
     </span>
   
@@ -204,7 +204,20 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="Nachos硬盘"><a href="#Nachos硬盘" class="headerlink" title="Nachos硬盘"></a>Nachos硬盘</h4><h5 id="创建硬盘"><a href="#创建硬盘" class="headerlink" title="创建硬盘"></a>创建硬盘</h5><h5 id="格式化"><a href="#格式化" class="headerlink" title="格式化"></a>格式化</h5><p>在以<code>-f</code>参数运行、进入<code>Initialize()</code>函数之后，<code>format</code>值为<code>true</code>，因此进入文件系统的初始化过程。</p>
+              <h4 id="Nachos硬盘与文件系统"><a href="#Nachos硬盘与文件系统" class="headerlink" title="Nachos硬盘与文件系统"></a>Nachos硬盘与文件系统</h4><h5 id="创建硬盘"><a href="#创建硬盘" class="headerlink" title="创建硬盘"></a>创建硬盘</h5><p>入口：<code>\#ifdef FILESYS synchDisk = new SynchDisk(&quot;DISK&quot;);\#endif</code></p>
+<p>我们的硬盘对应的类为<code>Disk</code>，考虑到并发访问以及阻塞之后唤醒的问题，我们又封装了一层形成了<code>SynchDisk</code>类。因此创建硬盘时在初始化<code>SynchDisk</code>的过程中初始化<code>Disk</code>。：</p>
+<div class="hljs"><pre><code class="hljs c++">SynchDisk::SynchDisk(<span class="hljs-keyword">char</span>* name)
+&#123;
+    semaphore = <span class="hljs-keyword">new</span> Semaphore(<span class="hljs-string">"synch disk"</span>, <span class="hljs-number">0</span>);
+    lock = <span class="hljs-keyword">new</span> Lock(<span class="hljs-string">"synch disk lock"</span>);
+    disk = <span class="hljs-keyword">new</span> Disk(name, DiskRequestDone, (_int) <span class="hljs-keyword">this</span>);
+&#125;</code></pre></div>
+<p>解释：</p>
+<ul>
+<li>这里的<code>DiskRequestDone</code>为中断处理函数，参数即为<code>(_int) this</code>。真正执行时将<code>this</code>再转换成指向<code>SynchDisk</code>的指针，然后调用类方法<code>RequestDone()</code>，执行信号量的<code>v()</code>操作。</li>
+<li><code>Disk</code>的构造并不复杂，主要是判断文件是否存在——不存在则创建；并完成魔数的处理；将0写入到文件末尾避免EOF。</li>
+</ul>
+<h5 id="格式化"><a href="#格式化" class="headerlink" title="格式化"></a>格式化</h5><p>在以<code>-f</code>参数运行、进入<code>Initialize()</code>函数之后，<code>format</code>值为<code>true</code>，因此进入文件系统的初始化过程。</p>
 <blockquote>
 <p>// FileSystem::FileSystem</p>
 <p>// Initialize the file system. If format = TRUE, the disk has nothing on it, and we need to initialize the disk to contain</p>
@@ -241,6 +254,35 @@ Directory::Directory(<span class="hljs-keyword">int</span> <span class="hljs-bui
 </li>
 <li><p>注意代码中我们有这样的逻辑：<code>freeMapFile = new OpenFile(FreeMapSector); freeMap-&gt;WriteBack(freeMapFile);</code>。</p>
 <p>这是因为<code>freeMap</code>只是我们内存中的对象，但是尚未写入磁盘，在调用<code>writeBack</code>之后才是真正写入。</p>
+</li>
+</ul>
+<h4 id="命令测试"><a href="#命令测试" class="headerlink" title="命令测试"></a>命令测试</h4><h5 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h5><ul>
+<li><p><a href="https://man7.org/linux/man-pages/man1/hexdump.1.html" target="_blank" rel="noopener">hexdump</a></p>
+<p>仅仅查看魔数：<code>hd  -n 4 DISK</code></p>
+</li>
+<li><p><a href="https://man7.org/linux/man-pages/man1/od.1.html" target="_blank" rel="noopener">od</a></p>
+</li>
+</ul>
+<h5 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h5><ul>
+<li><p><code>-D</code>：</p>
+<p><img src="https://i.loli.net/2021/04/19/jov6D3dWFXIYZRC.png" srcset="/img/loading.gif" alt="image-20210419164856376" style="zoom: 50%;" /></p>
+</li>
+<li><p><code>-cp test/small small</code></p>
+<p><img src="https://i.loli.net/2021/04/19/gI9hBcOj7TwUuCe.png" srcset="/img/loading.gif" alt="image-20210419165819294" style="zoom:67%;" /></p>
+<p><img src="https://i.loli.net/2021/04/19/Rnb8aCwVprh7Nxv.png" srcset="/img/loading.gif" alt="image-20210419165931544"></p>
+<p>可以看到命令成功执行了。</p>
+<p>之后执行<code>-cp test/medium medium</code>同样成功</p>
+</li>
+<li><p><code>-cp test/big big</code></p>
+<p><img src="https://i.loli.net/2021/04/19/a1eZXYMJtKRScEV.png" srcset="/img/loading.gif" alt="image-20210419170747228" style="zoom:67%;" /></p>
+<p><img src="https://i.loli.net/2021/04/19/54DBj3vsfNXzY7R.png" srcset="/img/loading.gif" alt="image-20210419170829843" style="zoom: 67%;" /></p>
+<p>根据上图可知，第10扇区是big文件的文件头，由于连续分配的策略，之后的11/12/13均是big文件的具体内容。</p>
+<p><img src="https://i.loli.net/2021/04/19/oDkRvpzi4OCYLry.png" srcset="/img/loading.gif" alt="image-20210419171257794" style="zoom: 80%;" /></p>
+<p><img src="https://i.loli.net/2021/04/19/5Xw9kH814Dhx2R3.png" srcset="/img/loading.gif" alt="image-20210419171235921" style="zoom:80%;" /></p>
+</li>
+<li><p><code>-r small</code></p>
+<p>连续删除small、big之后：</p>
+<p><img src="https://i.loli.net/2021/04/19/eiYWDBr17EFvjmq.png" srcset="/img/loading.gif" alt="image-20210419171656448"></p>
 </li>
 </ul>
 

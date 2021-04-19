@@ -175,10 +175,9 @@
         
           
         
-        <div>Nachos硬盘创建硬盘格式化在以-f参数运行、进入Initialize()函数之后，format值为true，因此进入文件系统的初始化过程。
-
-// FileSystem::FileSystem
-// Initialize the file system. If format = TRUE, the disk has nothing on it, and we need to initializ</div>
+        <div>Nachos硬盘与文件系统创建硬盘入口：\#ifdef FILESYS synchDisk = new SynchDisk(&quot;DISK&quot;);\#endif
+我们的硬盘对应的类为Disk，考虑到并发访问以及阻塞之后唤醒的问题，我们又封装了一层形成了SynchDisk类。因此创建硬盘时在初始化SynchDisk的过程中初始化Disk。：
+SynchDisk::SynchDisk(c</div>
       </a>
 
       <div class="index-btm post-metas">
