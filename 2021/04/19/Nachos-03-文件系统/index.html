@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      629 字
+      795 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      8
+      10
        分钟
     </span>
   
@@ -255,6 +255,15 @@ Directory::Directory(<span class="hljs-keyword">int</span> <span class="hljs-bui
 <li><p>注意代码中我们有这样的逻辑：<code>freeMapFile = new OpenFile(FreeMapSector); freeMap-&gt;WriteBack(freeMapFile);</code>。</p>
 <p>这是因为<code>freeMap</code>只是我们内存中的对象，但是尚未写入磁盘，在调用<code>writeBack</code>之后才是真正写入。</p>
 </li>
+</ul>
+<h5 id="具体操作"><a href="#具体操作" class="headerlink" title="具体操作"></a>具体操作</h5><p><code>Disk::ReadRequest/WriteRequest</code></p>
+<ul>
+<li>通过<code>Read/WriteFile</code>函数来模拟磁盘读取的物理操作</li>
+<li>整体逻辑是首先计算出访问时间——包括寻道时间、旋转延迟、传输时间。在函数末尾（实际上此时已经完成了读取），添加一个中断——时间是访问时间，这个中断实际上执行的就是将<code>active</code>置为<code>false</code>，表示操作结束，并且最终执行<code>SynchDisk::RequestDone()</code>。从而这样模拟了花费一段时间的读取操作。</li>
+</ul>
+<p><code>SynchDisk::ReadSector/WriteSector</code></p>
+<ul>
+<li>通过互斥锁来确保对<code>Disk</code>的互斥访问，通过信号量来实现阻塞唤醒——上面的逻辑。</li>
 </ul>
 <h4 id="命令测试"><a href="#命令测试" class="headerlink" title="命令测试"></a>命令测试</h4><h5 id="工具"><a href="#工具" class="headerlink" title="工具"></a>工具</h5><ul>
 <li><p><a href="https://man7.org/linux/man-pages/man1/hexdump.1.html" target="_blank" rel="noopener">hexdump</a></p>
