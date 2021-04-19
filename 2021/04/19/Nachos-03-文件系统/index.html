@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>分布式系统整体框架 - TATOVO&#39;s blog</title>
+  <title>Nachos-03-文件系统 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-04-17 17:47">
-      2021年4月17日 下午
+    <time datetime="2021-04-19 15:10">
+      2021年4月19日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      21 字
+      328 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      4
        分钟
     </span>
   
@@ -204,7 +204,46 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="CAP理论"><a href="#CAP理论" class="headerlink" title="CAP理论"></a>CAP理论</h4><h5 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h5><h5 id="证明"><a href="#证明" class="headerlink" title="证明"></a>证明</h5><h4 id="一致性协议raft"><a href="#一致性协议raft" class="headerlink" title="一致性协议raft"></a>一致性协议raft</h4><h4 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h4><h4 id="分布式缓存"><a href="#分布式缓存" class="headerlink" title="分布式缓存"></a>分布式缓存</h4>
+              <h4 id="Nachos硬盘"><a href="#Nachos硬盘" class="headerlink" title="Nachos硬盘"></a>Nachos硬盘</h4><h5 id="创建硬盘"><a href="#创建硬盘" class="headerlink" title="创建硬盘"></a>创建硬盘</h5><h5 id="格式化"><a href="#格式化" class="headerlink" title="格式化"></a>格式化</h5><p>在以<code>-f</code>参数运行、进入<code>Initialize()</code>函数之后，<code>format</code>值为<code>true</code>，因此进入文件系统的初始化过程。</p>
+<blockquote>
+<p>// FileSystem::FileSystem</p>
+<p>// Initialize the file system. If format = TRUE, the disk has nothing on it, and we need to initialize the disk to contain</p>
+<p>// an empty directory, and a bitmap of free sectors (with almost but not all of the sectors marked as free). </p>
+</blockquote>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-built_in">FileSystem</span>::<span class="hljs-built_in">FileSystem</span>(<span class="hljs-keyword">bool</span> format)
+&#123; 
+    DEBUG(<span class="hljs-string">'f'</span>, <span class="hljs-string">"Initializing the file system.\n"</span>);
+    <span class="hljs-keyword">if</span> (format) &#123;
+        BitMap *freeMap = <span class="hljs-keyword">new</span> BitMap(NumSectors); <span class="hljs-comment">//NumSectors定义在disk.h当中，32磁道*每磁道32扇区</span>
+        Directory *directory = <span class="hljs-keyword">new</span> Directory(NumDirEntries); <span class="hljs-comment">//NumDirEntries为10</span>
+	FileHeader *mapHdr = <span class="hljs-keyword">new</span> FileHeader; <span class="hljs-comment">//文件头 即FCB</span>
+	FileHeader *dirHdr = <span class="hljs-keyword">new</span> FileHeader;</code></pre></div>
+<p>解释：</p>
+<ul>
+<li><p><code>BitMap</code>底层结构就是一个<code>int</code>数组，定义了一些函数从而方便位级别的操作。用于表示空闲的扇区。</p>
+</li>
+<li><p><code>Directory</code>就是目录，包括诸多目录项——这里是10个，意味着我们只能有10个文件。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">DirectoryEntry</span> &#123;</span>
+  <span class="hljs-keyword">public</span>:
+    <span class="hljs-keyword">bool</span> inUse;				<span class="hljs-comment">// Is this directory entry in use?</span>
+    <span class="hljs-keyword">int</span> sector;				<span class="hljs-comment">// Location on disk to find the </span>
+					<span class="hljs-comment">//   FileHeader for this file </span>
+    <span class="hljs-keyword">char</span> name[FileNameMaxLen + <span class="hljs-number">1</span>];	<span class="hljs-comment">// Text name for file, with +1 for </span>
+					<span class="hljs-comment">// the trailing '\0'</span>
+&#125;;
+Directory::Directory(<span class="hljs-keyword">int</span> <span class="hljs-built_in">size</span>)
+&#123;
+    table = <span class="hljs-keyword">new</span> DirectoryEntry[<span class="hljs-built_in">size</span>];
+    tableSize = <span class="hljs-built_in">size</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; tableSize; i++)
+	table[i].inUse = FALSE;
+&#125;</code></pre></div>
+</li>
+<li><p>注意代码中我们有这样的逻辑：<code>freeMapFile = new OpenFile(FreeMapSector); freeMap-&gt;WriteBack(freeMapFile);</code>。</p>
+<p>这是因为<code>freeMap</code>只是我们内存中的对象，但是尚未写入磁盘，在调用<code>writeBack</code>之后才是真正写入。</p>
+</li>
+</ul>
+
             </article>
             <hr>
             <div>
@@ -213,7 +252,9 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -221,11 +262,9 @@
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/MapReduce/">MapReduce</a>
+                      <a class="hover-with-bg" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
                     
-                      <a class="hover-with-bg" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>
-                    
-                      <a class="hover-with-bg" href="/tags/MIT6-824/">MIT6.824</a>
+                      <a class="hover-with-bg" href="/tags/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -238,18 +277,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/04/19/Nachos-03-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Nachos-03-文件系统</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/">
-                        <span class="hidden-mobile">CS144-06-关于Sponge</span>
+                      <a href="/2021/04/17/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6/">
+                        <span class="hidden-mobile">分布式系统整体框架</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -388,7 +421,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "分布式系统整体框架&nbsp;",
+        "Nachos-03-文件系统&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,
