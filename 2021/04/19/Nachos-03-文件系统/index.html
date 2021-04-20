@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      795 字
+      2.1k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      10
+      24
        分钟
     </span>
   
@@ -286,14 +286,103 @@ Directory::Directory(<span class="hljs-keyword">int</span> <span class="hljs-bui
 <p><img src="https://i.loli.net/2021/04/19/a1eZXYMJtKRScEV.png" srcset="/img/loading.gif" alt="image-20210419170747228" style="zoom:67%;" /></p>
 <p><img src="https://i.loli.net/2021/04/19/54DBj3vsfNXzY7R.png" srcset="/img/loading.gif" alt="image-20210419170829843" style="zoom: 67%;" /></p>
 <p>根据上图可知，第10扇区是big文件的文件头，由于连续分配的策略，之后的11/12/13均是big文件的具体内容。</p>
-<p><img src="https://i.loli.net/2021/04/19/oDkRvpzi4OCYLry.png" srcset="/img/loading.gif" alt="image-20210419171257794" style="zoom: 80%;" /></p>
-<p><img src="https://i.loli.net/2021/04/19/5Xw9kH814Dhx2R3.png" srcset="/img/loading.gif" alt="image-20210419171235921" style="zoom:80%;" /></p>
+<p><img src="https://i.loli.net/2021/04/19/oDkRvpzi4OCYLry.png" srcset="/img/loading.gif" alt="image-20210419171257794" style="zoom: 67%;" /></p>
+<p><img src="https://i.loli.net/2021/04/19/5Xw9kH814Dhx2R3.png" srcset="/img/loading.gif" alt="image-20210419171235921" style="zoom: 67%;" /></p>
 </li>
 <li><p><code>-r small</code></p>
 <p>连续删除small、big之后：</p>
 <p><img src="https://i.loli.net/2021/04/19/eiYWDBr17EFvjmq.png" srcset="/img/loading.gif" alt="image-20210419171656448"></p>
 </li>
 </ul>
+<h4 id="扩展文件系统"><a href="#扩展文件系统" class="headerlink" title="扩展文件系统"></a>扩展文件系统</h4><h5 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h5><p>首先梳理一下Nachos文件系统的整体结构：</p>
+<ul>
+<li>磁盘类为<code>Disk</code>和<code>synchDisk</code>，后者封装了前者，并且提供了两个基本的接口：以sector为单位进行读写。</li>
+<li>位图、根目录表用于管理文件，后者包括了所有文件文件头的所在扇区。文件头包括基本的分配、取消分配以及针对文件头的<code>FetchFrom/WriteBack</code>。</li>
+<li><code>OpenFile</code>根据文件头的信息对文件进行读写操作——底层都是调用<code>synchDisk</code>。</li>
+<li><code>FileSystem</code>提供了更为上层的接口，包括初始化文件系统、创建删除文件等。</li>
+</ul>
+<p>如何实现从文件的任意位置添加数据：</p>
+<ul>
+<li>首先我们明确，因为只有文件头拥有文件占用的扇区、文件长度等信息，所以应该扩展<code>OpenFile</code>的写操作。其中<code>write</code>又是对<code>writeAt</code>的封装，因此核心在于<code>writeAt</code>函数。</li>
+<li>原本的实现约束了对文件的扩展——一旦写入长度大于目前文件长度就拒绝执行。因此需要去除这些限制。</li>
+<li><p>扩展可以简单的分为两种：</p>
+<ul>
+<li>最后一个扇区的空闲位置已经足够，不需要再分配扇区</li>
+<li>写满最后扇区之后，仍然需要分配<ul>
+<li>可能由于没有足够的扇区或者文件大小超过30个扇区导致失败</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p><strong>如何判断是否有足够的空间分配给新来的数据？</strong></p>
+<ul>
+<li>一方面我们需要文件系统的位图的信息，直接的做法是新建一个位图实例和打开文件的实例，前者以后者为参数调用<code>FetchFrom</code>得到文件系统的位图。更加美观的做法是，直接扩展我们的文件系统类，让其提供<code>getBitMap</code>方法从而方便我们直接得到位图。</li>
+<li>另一方面需要结合当前文件的信息判断能否继续分配以及怎样分配扇区——这需要文件头去操作——通过当前<code>OpenFile</code>实例对应的文件头（私有成员<code>hdr</code>）进行相关逻辑的处理。<ul>
+<li>这里我们重载了文件头类的<code>Allocate</code>方法。如果可以正常进行返回<code>true</code>。</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>重载的<code>Allocate</code>方法逻辑非常清晰，主要有三部分：<ul>
+<li>如果文件当前大小为0并且需要写入数据，先暂时分配一个扇区，从而与后续逻辑保持一致。</li>
+<li>判断最后一个扇区空闲空间是否足够，足够的话那么无需分配。</li>
+<li>不足，需要分配，尝试分配。失败的可能包括：文件过大；没有足够的空闲磁盘块。</li>
+</ul>
+</li>
+<li>如果分配成功，那么需要将修改后的位图写回磁盘。</li>
+<li>之后就是写入过程了，与原本的逻辑一致，不用改动。</li>
+</ul>
+<p>如何实现文件初始时大小为0？</p>
+<ul>
+<li>很简单，从文件头入手，构造函数内部将文件大小修改为0即可。</li>
+</ul>
+<h5 id="测试-1"><a href="#测试-1" class="headerlink" title="测试"></a>测试</h5><p>首先在small之后添加small（见DEBUG截图），之后再次添加big文件：</p>
+<p><img src="https://i.loli.net/2021/04/20/6BADFapk8bMzTE1.png" srcset="/img/loading.gif" alt="image-20210420152541719" style="zoom: 50%;" /></p>
+<p>可见，确实是在将原本文件所在扇区写满之后再分配新的扇区。因为目前我们只有一个文件，所以位图分配的结果就是连续的。</p>
+<p>接着我们测试在small中间写入medium：</p>
+<p><img src="https://i.loli.net/2021/04/20/5b3excA6lVT4gKo.png" srcset="/img/loading.gif" alt="image-20210420152802319" style="zoom: 50%;" /></p>
+<p>验证删除机制：</p>
+<p>定义：<code>FileSystem::Remove(char *name)</code>。逻辑如下：</p>
+<ul>
+<li><p>首先读取1号扇区的跟目录表文件，接着寻找文件头所在扇区</p>
+<ul>
+<li>底层依靠的是目录表的<code>FindeIndex</code>，遍历<code>table</code>，如果在使用且名字相同，那么返回对应的index。<code>Find</code>函数根据index返回文件头所在扇区。</li>
+</ul>
+</li>
+<li><p>因为我们只有文件头存储了文件所在扇区的信息，所以需要依靠文件头调用<code>Deallocate</code>从而清除位图对应位。</p>
+<ul>
+<li><p>这里清除调用的是位图的<code>clear</code>函数，实现很简单：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span> 
+BitMap::Clear(<span class="hljs-keyword">int</span> which) 
+&#123;
+    ASSERT(which &gt;= <span class="hljs-number">0</span> &amp;&amp; which &lt; numBits);
+    <span class="hljs-comment">//将对应位置为1，其它位均为0，那么取反之后相与即可</span>
+    <span class="hljs-built_in">map</span>[which / BitsInWord] &amp;= ~(<span class="hljs-number">1</span> &lt;&lt; (which % BitsInWord)); 
+&#125;</code></pre></div>
+</li>
+</ul>
+</li>
+<li><p>另外，还需要清除位图中的文件头对应位，清除目录表中对应的目录项——将<code>table</code>中对应的项<code>inUse</code>置为<code>false</code>即可。</p>
+</li>
+</ul>
+<p>那么，预期就是尽管删除了文件、<code>-D</code>不会显示文件，但是使用<code>hexdump -C DISK</code>依然可以看到已经删除的文件（只要没被覆盖）。</p>
+<p>首先初始化文件系统，然后复制test/small至small：</p>
+<p><img src="https://i.loli.net/2021/04/20/tEXbyAOd3nagl4v.png" srcset="/img/loading.gif" alt="image-20210420155003241" style="zoom:67%;" /></p>
+<p><img src="https://i.loli.net/2021/04/20/KX6UTgy9QjRLVZl.png" srcset="/img/loading.gif" alt="image-20210420155052975" style="zoom:67%;" /></p>
+<p>接着删除：</p>
+<p><img src="https://i.loli.net/2021/04/20/jMbtROfFgKn4qu6.png" srcset="/img/loading.gif" alt="image-20210420155130906" style="zoom:67%;" /></p>
+<p>文件系统中已经没有了。但是通过<code>hexdump</code>还可以看到内容：</p>
+<p><img src="https://i.loli.net/2021/04/20/cZN9fn2eRyP4UCp.png" srcset="/img/loading.gif" alt="image-20210420155221978" style="zoom:67%;" /></p>
+<h5 id="DEBUG"><a href="#DEBUG" class="headerlink" title="DEBUG"></a>DEBUG</h5><p>发现在<code>-ap test/small small</code>之后报错，提示没有足够的空间或者文件过大。显然这不应该出现。</p>
+<p>考虑到只有<code>writeAt</code>返回<code>-1</code>时才会出现这样的提示，而其中：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">if</span> ((numBytes &lt;= <span class="hljs-number">0</span>) || (<span class="hljs-built_in">position</span> &gt;= fileLength))
+	<span class="hljs-keyword">return</span> <span class="hljs-number">-1</span>;				<span class="hljs-comment">// check request</span></code></pre></div>
+<p>经过测试，<code>numBBytes</code>没有问题，说明后者出现问题。通过输出信息可以确定原因是<code>position == fileLength</code>：</p>
+<p><img src="https://i.loli.net/2021/04/20/Gi1KHdsMqj7UF2e.png" srcset="/img/loading.gif" alt="image-20210420121120587" style="zoom:80%;" /></p>
+<p>注意之前的写操作导致<code>position == fileLength</code>。因此不合法的情况应该是<code>position &gt; fileLength</code>。相等时应该进行文件的扩展。</p>
+<p>重新编译测试，正确：</p>
+<p><img src="https://i.loli.net/2021/04/20/a9Myrlo7jzIf4DJ.png" srcset="/img/loading.gif" alt="image-20210420122031247" style="zoom:80%;" /></p>
+<p><img src="https://i.loli.net/2021/04/20/BnJxEkPRNtIljb2.png" srcset="/img/loading.gif" alt="image-20210420122103862" style="zoom:80%;" /></p>
 
             </article>
             <hr>
