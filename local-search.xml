@@ -4,6 +4,39 @@
   
   
   <entry>
+    <title>字符串相关</title>
+    <link href="/2021/04/20/%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9B%B8%E5%85%B3/"/>
+    <url>/2021/04/20/%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9B%B8%E5%85%B3/</url>
+    
+    <content type="html"><![CDATA[<h4 id="最小表示法"><a href="#最小表示法" class="headerlink" title="最小表示法"></a>最小表示法</h4><h5 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h5><p>找出循环同构的字符串中字典序最小的循环起点。</p><h5 id="模板"><a href="#模板" class="headerlink" title="模板"></a>模板</h5><div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">int</span> k = <span class="hljs-number">0</span>, i = <span class="hljs-number">0</span>, j = <span class="hljs-number">1</span>;<span class="hljs-keyword">while</span> (k &lt; n &amp;&amp; i &lt; n &amp;&amp; j &lt; n) &#123;  <span class="hljs-keyword">if</span> (sec[(i + k) % n] == sec[(j + k) % n]) &#123;    k++;  &#125; <span class="hljs-keyword">else</span> &#123;    sec[(i + k) % n] &gt; sec[(j + k) % n] ? i = i + k + <span class="hljs-number">1</span> : j = j + k + <span class="hljs-number">1</span>; <span class="hljs-comment">//*</span>    <span class="hljs-keyword">if</span> (i == j) i++;    k = <span class="hljs-number">0</span>;  &#125;&#125;i = <span class="hljs-built_in">min</span>(i, j);</code></pre></div><h5 id="理解"><a href="#理解" class="headerlink" title="理解"></a>理解</h5><ul><li><p>如果进入<code>*</code>式，说明之前的都相等，那么如果<code>sec[i+k] &gt; sec[j+k]</code>，则以从<code>i</code>到<code>k</code>为起点的循环串必然不可能字典序最小。</p></li><li><p>这里之所以取两者中的较小者，是考虑到两者均有可能成为答案。结束时，如果是因为<code>i/j</code>到达<code>n</code>，那么说明其中较小者才是答案——较大者仍然在尝试移动。</p><p>如果是因为<code>k</code>才结束循环，说明此时<code>sec[i] == sec[j]</code>（<code>k</code>从0开始），且之后的一致相等，那么两者均为答案，取较小者不影响正确性。</p></li><li><p>如果两者相等，需要错开继续判断。</p></li></ul>]]></content>
+    
+    
+    <categories>
+      
+      <category>数据结构与算法</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>数据结构</tag>
+      
+      <tag>算法</tag>
+      
+      <tag>字符串</tag>
+      
+      <tag>最小表示法</tag>
+      
+      <tag>字典序</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Nachos-03-文件系统</title>
     <link href="/2021/04/19/Nachos-03-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
     <url>/2021/04/19/Nachos-03-%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</url>
@@ -66,7 +99,7 @@
     <link href="/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/"/>
     <url>/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/</url>
     
-    <content type="html"><![CDATA[<p>一个核心问题在于，<code>CS144TCPSocket</code>究竟是如何工作的？我们熟悉了这里TCP的逻辑，但是真正通信还需要两方面的支持：</p><ul><li>上层：<code>CS144TCPSocket</code>是如何封装的？</li><li>下层：这里实际上也实现了<code>IPV4</code>协议，如何使用的？<code>TUN/TAP</code>是如何使用的？</li></ul><hr>]]></content>
+    <content type="html"><![CDATA[<p>一个核心问题在于，<code>CS144TCPSocket</code>究竟是如何工作的？我们熟悉了这里TCP的逻辑，但是真正通信还需要两方面的支持：</p><ul><li>上层：<code>CS144TCPSocket</code>是如何封装的？</li><li>下层：这里实际上也实现了<code>IPV4</code>协议，如何使用的？<code>TUN/TAP</code>是如何使用的？</li></ul><hr><p>关于tun/tap：</p><p><a href="https://www.cnblogs.com/bakari/p/10474600.html" target="_blank" rel="noopener">https://www.cnblogs.com/bakari/p/10474600.html</a></p>]]></content>
     
     
     <categories>
