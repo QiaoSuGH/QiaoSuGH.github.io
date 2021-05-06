@@ -66,35 +66,6 @@
   
   
   <entry>
-    <title>分布式系统整体框架</title>
-    <link href="/2021/04/17/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6/"/>
-    <url>/2021/04/17/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F%E6%95%B4%E4%BD%93%E6%A1%86%E6%9E%B6/</url>
-    
-    <content type="html"><![CDATA[<h4 id="CAP理论"><a href="#CAP理论" class="headerlink" title="CAP理论"></a>CAP理论</h4><h5 id="定义"><a href="#定义" class="headerlink" title="定义"></a>定义</h5><h5 id="证明"><a href="#证明" class="headerlink" title="证明"></a>证明</h5><h4 id="一致性协议raft"><a href="#一致性协议raft" class="headerlink" title="一致性协议raft"></a>一致性协议raft</h4><h4 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h4><h4 id="分布式缓存"><a href="#分布式缓存" class="headerlink" title="分布式缓存"></a>分布式缓存</h4>]]></content>
-    
-    
-    <categories>
-      
-      <category>分布式系统</category>
-      
-    </categories>
-    
-    
-    <tags>
-      
-      <tag>MapReduce</tag>
-      
-      <tag>分布式系统</tag>
-      
-      <tag>MIT6.824</tag>
-      
-    </tags>
-    
-  </entry>
-  
-  
-  
-  <entry>
     <title>CS144-06-关于Sponge</title>
     <link href="/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/"/>
     <url>/2021/04/17/CS144-06-%E5%85%B3%E4%BA%8ESponge/</url>
