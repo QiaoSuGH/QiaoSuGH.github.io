@@ -4,6 +4,33 @@
   
   
   <entry>
+    <title>LSM-Tree</title>
+    <link href="/2021/05/07/LSM-Tree/"/>
+    <url>/2021/05/07/LSM-Tree/</url>
+    
+    <content type="html"><![CDATA[<h3 id="为什么需要-LSM-Tree"><a href="#为什么需要-LSM-Tree" class="headerlink" title="为什么需要 LSM-Tree"></a>为什么需要 LSM-Tree</h3><p>数据存储目前主要是磁盘和 SSD。尽管后者速度相比前者有了较大提升，但是共同的特点在于随机读写远远慢于顺序读写。因此，传统的 B-Tree 存储引擎的性能会因为随机读写而受到较大影响。LSM-Tree 的改进就在于通过保持顺序写入提升效率。</p><h3 id="LSM-Tree"><a href="#LSM-Tree" class="headerlink" title="LSM-Tree"></a>LSM-Tree</h3><p>首先我们在内存中维护一个 Memtable——有序的键值对。考虑到持久化、防止数据丢失，我们首先将数据写入 WAL，之后我们在 Memtable 中插入相应的键值对——此时 value 可以是数据在 WAL 中的 offset。具体的 Memtable 的实现可以是 skiplist 或者平衡树。</p><p>当 Memtable 的大小达到阈值之后，我们将其转变为 Immutable Memtable，同时可以创建一个新的 Memtable。前者用于持久化——转为 SSTable。</p><p>为了加快 SSTable 的查找，我们可以建立比较稀疏的索引，值是对应的键在 SSTable 文件中的偏移。这样查找时只需要扫描某个键之后的内容即可。</p><h4 id="基本操作"><a href="#基本操作" class="headerlink" title="基本操作"></a>基本操作</h4><p>读取：依次尝试在 memtable — immutable memtable — SSTables 当中查找数据。为了避免键不存在时对所有 SSTable 的查找，可以使用布隆过滤器。</p><p>插入：如上所述。</p><p>删除：类似于插入，不过此时 value 为一个删除的标记。</p><h4 id="合并"><a href="#合并" class="headerlink" title="合并"></a>合并</h4><h5 id="size-tiered"><a href="#size-tiered" class="headerlink" title="size-tiered"></a>size-tiered</h5><p>每一层 SSTable 大小相近，数量有限制。一旦达到限制就进行合并、沉入下一层。</p><p>这样导致同一层的 key 可能冗余严重。</p><h5 id="leveled"><a href="#leveled" class="headerlink" title="leveled"></a>leveled</h5><p>分层，每层限制文件的总大小。并且每层的 SSTable 大小相近，在当前层是唯一的。当大小超过阈值时，选择一个 SSTable，与下一层有交集的部分进行合并。这样可以确保每一层的 key 都是有序的。</p><p>但是如果某一层的某个 SSTable key 跨度非常大，那么合并时可能会涉及到下一层的很多 SSTable 文件，导致写放大问题。</p>]]></content>
+    
+    
+    <categories>
+      
+      <category>数据结构</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>LSM-Tree</tag>
+      
+      <tag>磁盘</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>字符串相关</title>
     <link href="/2021/04/20/%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9B%B8%E5%85%B3/"/>
     <url>/2021/04/20/%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9B%B8%E5%85%B3/</url>
