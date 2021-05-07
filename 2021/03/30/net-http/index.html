@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>Go-13-MESI协议与原子操作 - TATOVO&#39;s blog</title>
+  <title>Go-09-net/http - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-04-15 20:17">
-      2021年4月15日 晚上
+    <time datetime="2021-03-30 14:47">
+      2021年3月30日 下午
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      518 字
+      501 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      7
+      5
        分钟
     </span>
   
@@ -204,52 +204,57 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h3 id="MESI协议"><a href="#MESI协议" class="headerlink" title="MESI协议"></a>MESI协议</h3><h4 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h4><ul>
-<li><p><a href="https://en.wikipedia.org/wiki/MESI_protocol" target="_blank" rel="noopener">MESI维基百科</a></p>
-</li>
-<li><p><a href="https://en.wikipedia.org/wiki/Cache_coherence" target="_blank" rel="noopener">缓存一致性维基百科</a></p>
+              <h4 id="HTTP"><a href="#HTTP" class="headerlink" title="HTTP"></a>HTTP</h4><p>参考：</p>
+<ul>
+<li>深入学习用 Go 编写 HTTP 服务器 - Kevin Yan的文章 - 知乎 <a href="https://zhuanlan.zhihu.com/p/104182198" target="_blank" rel="noopener">https://zhuanlan.zhihu.com/p/104182198</a></li>
+</ul>
+<h5 id="注册路由"><a href="#注册路由" class="headerlink" title="注册路由"></a>注册路由</h5><p>从接口出发：</p>
+<ul>
+<li><p><code>http.HandleFunc(pattern,相应的处理函数P)</code></p>
+<ul>
+<li><p>调用<code>Mux.HandleFunc</code>，将P转换成<code>HandlerFunc</code>类型，然后调用<code>Mux.Handle(pattern,Handler接口实例)</code>，<code>Handler</code>接口拥有方法<code>ServerHTTP</code>。</p>
+<p>注意这里的转换，因为<code>HandlerFunc</code>实现了方法<code>ServerHTTP</code>，该方法会调用函数本身。换句话说，这里的接收器为一个函数，方法调用接收器。从而我们可以将其转换成<code>Handler</code>接口</p>
 </li>
 </ul>
-<h4 id="状态转移"><a href="#状态转移" class="headerlink" title="状态转移"></a>状态转移</h4><p>维基百科已经给出了状态机以及响应的解释，这里记录一点点更详细的解释作为补充。P：CPU。</p>
-<p><img src="https://i.loli.net/2021/04/15/rGN9UfKpV1Dxca5.png" srcset="/img/loading.gif" alt="image-20210415202913308" style="zoom:67%;" /></p>
-<p>注：黑色表示P引起的转移，<strong>/</strong>后面的表示向总线发出的信号。</p>
+</li>
+<li><p><code>http.Handle(pattern,Handler接口的实例)</code></p>
+</li>
+</ul>
+<p><code>ServerMux</code>结构体：</p>
+<ul>
+<li><code>map[key]muxEntry</code>。<code>key:pattern</code>；<code>muxEntry</code>是一个结构体，包括成员：<code>Handler</code>接口；<code>pattern</code></li>
+<li><code>es []muEntry</code> ：用于部分匹配</li>
+<li><code>mu/hosts</code></li>
+<li>实现的方法：<ul>
+<li><code>ServerHTTP</code>：与上面提到的同名，但是用于寻找对应的路由、处理函数</li>
+<li><code>Handle</code>：<ul>
+<li>向<code>map</code>添加项</li>
+<li><code>/</code>结尾，<code>[]muxEntry</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h5 id="启动服务"><a href="#启动服务" class="headerlink" title="启动服务"></a>启动服务</h5><p>从接口出发：</p>
+<ul>
+<li><code>http.ListenAndServer(addr string, handler Handler)</code>。注意，这里的<code>handler</code>是<code>ServerMux</code>。<ul>
+<li>生成<code>server := &amp;Server...</code></li>
+<li>调用<code>server</code>的<code>ListenAndServer</code></li>
+</ul>
+</li>
+<li>在<code>Server.ListenAndServer</code>当中：<ul>
+<li>判断错误 设置默认等等</li>
+<li>调用<code>Server.Serve</code>函数，参数是一个监听对象<code>l net.Listener</code><ul>
+<li>创建一个上下文对象，<code>l.Accept</code>接受监听到的网络连接；一旦有新的连接建立，那么调用<code>Server.newConn()</code>创建新的连接对象，设置状态，然后开启goroutine处理连接请求。</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
 <blockquote>
-<p>Processor Requests to Cache includes the following operations:</p>
-<ol>
-<li>PrRd: The processor requests to <strong>read</strong> a Cache block.</li>
-<li>PrWr: The processor requests to <strong>write</strong> a Cache block</li>
-</ol>
-<p>Bus side requests are the following:</p>
-<ol>
-<li>BusRd: Snooped request that indicates there is a <strong>read</strong> request to a Cache block requested by another processor</li>
-<li>BusRdX: Snooped request that indicates there is a <strong>write</strong> request to a Cache block requested by another processor that <strong>doesn’t already have the block.</strong></li>
-<li>BusUpgr: Snooped request that indicates that there is a write request to a Cache block requested by another processor but that processor already has that <strong>Cache block residing in its own Cache</strong>.</li>
-<li>Flush: Snooped request that indicates that an entire cache block is written back to the main memory by another processor.</li>
-<li>FlushOpt: Snooped request that indicates that an entire cache block is posted on the bus in order to supply it to another processor(Cache to Cache transfers).</li>
-</ol>
+<p>涉及到了context包，转而去阅读了。目前对HTTP Server有了大致的了解：我们首先需要注册路由（当然可以自己设置，或者使用默认的）。在http包当中已经有了完整的处理流程：当连接当来时，服务器对象会生成一个新的连接对象，然后开启goroutine去处理连接中的请求，对于每一个请求，其会调用mux来尝试精确匹配路由，如果失败，那么近似匹配。最终找到了对应的路由，然后再得到对应的处理函数。</p>
 </blockquote>
-<h5 id="状态I"><a href="#状态I" class="headerlink" title="状态I"></a>状态I</h5><ul>
-<li><p>如果是所在P发出的PrRd，那么会向总线发出信号BusRd。其他cache检查是否有并返回响应的信号。</p>
-<ul>
-<li>如果其他cache有valid copy，那么通过bus发送值，当前cache会被更新，状态转为<strong>S</strong></li>
-<li>否则，会从main memory取值进行更新，状态转为<strong>E</strong></li>
-</ul>
-</li>
-<li><p>如果是收到来自bus的请求：BusRd，直接忽略。</p>
-</li>
-<li><p>如果是PrWr，状态转变为<strong>M</strong>，其他缓存如果存有copy那么失效。</p>
-</li>
-</ul>
-<h5 id="实现LOCK指令"><a href="#实现LOCK指令" class="headerlink" title="实现LOCK指令"></a>实现LOCK指令</h5><p>为什么保持住M、E状态即可？</p>
-<ul>
-<li><p>如果当前状态为I——假设为写操作，向总线发送<code>BusRdX</code>，如果其他缓存有copy，例如如果是M状态，那么会<code>Put FlushOpt on Bus with data.Received by sender of BusRdx and Memory Controller, which writes to Main memory.</code>同时状态变为I。而当前cache line变为M。</p>
-<p><u>看到有资料介绍说也是让其他的失效，但是不确定正确性。</u></p>
-</li>
-<li><p>如果当前状态为s——让其他的失效即可。</p>
-</li>
-<li><p>如果为M或者E，那么是独占的，<u>需要解决的是如何阻塞其他的cache的请求？</u></p>
-</li>
-</ul>
+<h5 id="停止服务"><a href="#停止服务" class="headerlink" title="停止服务"></a>停止服务</h5><hr>
 
             </article>
             <hr>
@@ -269,14 +274,6 @@
                     
                       <a class="hover-with-bg" href="/tags/Go/">Go</a>
                     
-                      <a class="hover-with-bg" href="/tags/MESI/">MESI</a>
-                    
-                      <a class="hover-with-bg" href="/tags/%E4%BD%93%E7%B3%BB%E7%BB%93%E6%9E%84/">体系结构</a>
-                    
-                      <a class="hover-with-bg" href="/tags/%E5%8E%9F%E5%AD%90%E6%93%8D%E4%BD%9C/">原子操作</a>
-                    
-                      <a class="hover-with-bg" href="/tags/CAS/">CAS</a>
-                    
                   </div>
                 
               </div>
@@ -288,9 +285,9 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/04/16/MIT6-824-Lab1-MapReduce/">
+                      <a href="/2021/04/06/map%E7%9A%84%E5%AE%9E%E7%8E%B0/">
                         <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">MIT6.824-Lab1-MapReduce</span>
+                        <span class="hidden-mobile">Go-10-map的实现</span>
                         <span class="visible-mobile">上一篇</span>
                       </a>
                     
@@ -298,8 +295,8 @@
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/04/15/MapReduce/">
-                        <span class="hidden-mobile">MapReduce</span>
+                      <a href="/2021/03/28/Nachos-02-%E4%BF%A1%E5%8F%B7%E9%87%8F%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">
+                        <span class="hidden-mobile">Nachos-02-信号量与线程同步</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -438,7 +435,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "Go-13-MESI协议与原子操作&nbsp;",
+        "Go-09-net/http&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,
