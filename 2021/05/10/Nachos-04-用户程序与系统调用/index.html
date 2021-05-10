@@ -17,7 +17,7 @@
   <meta name="description" content="zzzovo&#39;s blog">
   <meta name="author" content="TATOVO">
   <meta name="keywords" content="����">
-  <title>LSM-Tree - TATOVO&#39;s blog</title>
+  <title>Nachos-04-用户程序与系统调用 - TATOVO&#39;s blog</title>
 
   <link  rel="stylesheet" href="https://cdn.staticfile.org/twitter-bootstrap/4.4.1/css/bootstrap.min.css" />
 
@@ -152,8 +152,8 @@
               
   <div class="mt-3 post-meta">
     <i class="iconfont icon-date-fill" aria-hidden="true"></i>
-    <time datetime="2021-05-07 20:28">
-      2021年5月7日 晚上
+    <time datetime="2021-05-10 21:23">
+      2021年5月10日 晚上
     </time>
   </div>
 
@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      526 字
+      964 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      5
+      11
        分钟
     </span>
   
@@ -204,17 +204,85 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h3 id="为什么需要-LSM-Tree"><a href="#为什么需要-LSM-Tree" class="headerlink" title="为什么需要 LSM-Tree"></a>为什么需要 LSM-Tree</h3><p>数据存储目前主要是磁盘和 SSD。尽管后者速度相比前者有了较大提升，但是共同的特点在于随机读写远远慢于顺序读写。因此，传统的 B-Tree 存储引擎的性能会因为随机读写而受到较大影响。LSM-Tree 的改进就在于通过保持顺序写入提升效率。</p>
-<h3 id="LSM-Tree"><a href="#LSM-Tree" class="headerlink" title="LSM-Tree"></a>LSM-Tree</h3><p>首先我们在内存中维护一个 Memtable——有序的键值对。考虑到持久化、防止数据丢失，我们首先将数据写入 WAL，之后我们在 Memtable 中插入相应的键值对——此时 value 可以是数据在 WAL 中的 offset。具体的 Memtable 的实现可以是 skiplist 或者平衡树。</p>
-<p>当 Memtable 的大小达到阈值之后，我们将其转变为 Immutable Memtable，同时可以创建一个新的 Memtable。前者用于持久化——转为 SSTable。</p>
-<p>为了加快 SSTable 的查找，我们可以建立比较稀疏的索引，值是对应的键在 SSTable 文件中的偏移。这样查找时只需要扫描某个键之后的内容即可。</p>
-<h4 id="基本操作"><a href="#基本操作" class="headerlink" title="基本操作"></a>基本操作</h4><p>读取：依次尝试在 memtable — immutable memtable — SSTables 当中查找数据。为了避免键不存在时对所有 SSTable 的查找，可以使用布隆过滤器。</p>
-<p>插入：如上所述。</p>
-<p>删除：类似于插入，不过此时 value 为一个删除的标记。</p>
-<h4 id="合并"><a href="#合并" class="headerlink" title="合并"></a>合并</h4><h5 id="size-tiered"><a href="#size-tiered" class="headerlink" title="size-tiered"></a>size-tiered</h5><p>每一层 SSTable 大小相近，数量有限制。一旦达到限制就进行合并、沉入下一层。</p>
-<p>这样导致同一层的 key 可能冗余严重。</p>
-<h5 id="leveled"><a href="#leveled" class="headerlink" title="leveled"></a>leveled</h5><p>分层，每层限制文件的总大小。并且每层的 SSTable 大小相近，在当前层是唯一的。当大小超过阈值时，选择一个 SSTable，与下一层有交集的部分进行合并。这样可以确保每一层的 key 都是有序的。</p>
-<p>但是如果某一层的某个 SSTable key 跨度非常大，那么合并时可能会涉及到下一层的很多 SSTable 文件，导致写放大问题。</p>
+              <h4 id="用户进程的创建与启动"><a href="#用户进程的创建与启动" class="headerlink" title="用户进程的创建与启动"></a>用户进程的创建与启动</h4><h5 id="StartProcess"><a href="#StartProcess" class="headerlink" title="StartProcess"></a><code>StartProcess</code></h5><p>我们可以通过<code>nachos -x filename</code>来启动一个用户进程，其中在<code>main.cc</code>中根据<code>-x</code>参数执行<code>StartProcess</code>。</p>
+<p><img src="https://i.loli.net/2021/05/10/m6ndBTyHFbMYuUI.png" srcset="/img/loading.gif" alt="image-20210510204414727" style="zoom:50%;" /></p>
+<p>可以看到基本逻辑非常清晰：</p>
+<ul>
+<li>通过文件系统打开得到对应可执行程序的 <code>OpenFile</code> 指针</li>
+<li>创建 <code>AddrSpace</code> 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、保存状态</li>
+<li>最后 <code>Run</code></li>
+</ul>
+<h5 id="进程地址空间-AddrSpace"><a href="#进程地址空间-AddrSpace" class="headerlink" title="进程地址空间 AddrSpace"></a>进程地址空间 <code>AddrSpace</code></h5><p>这里 <code>AddrSpace</code> 的构造函数逻辑如下：</p>
+<ul>
+<li><p>可执行文件（<code>.noff</code> 格式）开始为一个 noff 文件头，记录了魔数、代码段数据段的信息，包括大小、在文件中的地址、在虚拟内存地址空间中的地址。相应代码：<code>noff.h</code> 中的 <code>Segment</code> 和 <code>NoffHeader</code>。因此这里首先创建了一个 <code>NoffHeader</code> 对象，然后调用传入的 <code>OpenFile</code> 指针读取相应的数据到该对象中：</p>
+<p><img src="https://i.loli.net/2021/05/10/26wj7NJv9uty1Yp.png" srcset="/img/loading.gif" alt="image-20210510211347173" style="zoom:67%;" /></p>
+</li>
+<li><p>计算整个程序的大小。除了代码段数据段以外，还有 1KB 的栈。根据该大小我们可以确定需要多少 pages。之后就是初始化页表——一个 <code>TranslationEntry</code> 数组。</p>
+</li>
+<li>注意此时程序尚未真正载入内存，所以我们先将内存对应部分置为0，然后通过 <code>OpenFile</code> 将代码段和初始化的数据段载入内存。</li>
+</ul>
+<h5 id="初始化寄存器、传递页表"><a href="#初始化寄存器、传递页表" class="headerlink" title="初始化寄存器、传递页表"></a>初始化寄存器、传递页表</h5><p>这里我们创建了一个用户进程、映射到核心线程之后会立刻运行它，所以需要设置寄存器的状态——即 CPU/machine 中的寄存器。</p>
+<p>在 <code>InitRegister</code> 中依次初始化所有寄存器为 0、PC 寄存器为 0（因为代码段放在了虚拟地址空间起始处，从 0 开始执行）、NextPCReg 为 4、StackReg。</p>
+<p>传递页表：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">AddrSpace::RestoreState</span><span class="hljs-params">()</span> </span>
+<span class="hljs-function"></span>&#123;
+    machine-&gt;pageTable = pageTable;
+    machine-&gt;pageTableSize = numPages;
+&#125;</code></pre></div>
+<h5 id="运行-Run"><a href="#运行-Run" class="headerlink" title="运行 Run"></a>运行 <code>Run</code></h5><div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
+Machine::Run()
+&#123;
+    Instruction *instr = <span class="hljs-keyword">new</span> Instruction;  <span class="hljs-comment">// storage for decoded instruction</span>
+
+    <span class="hljs-keyword">if</span>(DebugIsEnabled(<span class="hljs-string">'m'</span>))
+        <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Starting thread \"%s\" at time %d\n"</span>,
+	       currentThread-&gt;getName(), stats-&gt;totalTicks);
+    interrupt-&gt;setStatus(UserMode);
+    <span class="hljs-keyword">for</span> (;;) &#123;
+        OneInstruction(instr);
+	interrupt-&gt;OneTick();
+	<span class="hljs-keyword">if</span> (singleStep &amp;&amp; (runUntilTime &lt;= stats-&gt;totalTicks))
+	  Debugger();
+    &#125;
+&#125;</code></pre></div>
+<p>如何获取到用户程序中的代码或者数据？</p>
+<p>在 <code>OneInstruction</code> 中调用 <code>ReadMem</code>：<code>machine-&gt;ReadMem(registers[PCReg], 4, &amp;raw)</code>，接着调用<code>Translate</code>：</p>
+<p><img src="https://i.loli.net/2021/05/10/UcSRTYhWPbInd6m.png" srcset="/img/loading.gif" alt="image-20210510215450791" style="zoom:67%;" /></p>
+<p>其中逻辑如下：</p>
+<ul>
+<li><p>检查内存对齐错误。这里分为两种：访问四字节数据但是地址低两位不为 <code>00</code>；访问两字节数据但是地址低位不为 <code>0</code>。</p>
+</li>
+<li><p>之后计算虚拟内存地址对应的页号以及页内偏移</p>
+<ul>
+<li>如果存在 <code>tlb</code>，那么在其中寻找物理页</li>
+<li>否则在页表中寻找物理页</li>
+</ul>
+<p>当然，如果虚拟页号超过了页表大小，那么产生 <code>AddressErrorException</code>；如果不存在对应项，那么产生 <code>PageFaultException</code>。</p>
+</li>
+<li><p>找到之后还需要进行一些检查、相关状态更新、将传入指针指向值改为物理内存地址。</p>
+</li>
+</ul>
+<p>在获取物理地址之后调用 <code>machine-&gt;mainMemory[physicalAddress]</code> 获得值。</p>
+<p>回到 <code>OneInstruction</code>，我们目前已经通过 <code>ReadMem</code> 获得了 PC 寄存器指向的指令，接着对其进行译码，得到不同的指令操作类型。</p>
+<p>如果是 <code>OP_JAL</code>，那么<code>registers[R31] = registers[NextPCReg] + 4</code>。注意执行之后并没有 <code>break</code>，而是继续执行 <code>OP_J</code> 的处理：</p>
+<p><code>pcAfter = (pcAfter &amp; 0xf0000000) | IndexToAddr(instr-&gt;extra)</code>。</p>
+<p>ToDo：</p>
+<ul>
+<li><p>为什么 ReadMem 中会根据不同的 size 进行不同的转换？</p>
+</li>
+<li><p><code>JAL</code> 和 <code>J</code> 的区别，以及具体逻辑？</p>
+</li>
+<li><p>对用户态和内核态的思考——实际 Linux 中如何实现的？</p>
+<ul>
+<li>系统调用进入内核态意味着执行内核代码</li>
+<li>Linux 中 fork 的细节实现？</li>
+<li><p>用户线程映射到核心线程其实就是将核心线程将要执行的指令指向用户线程的指令</p>
+</li>
+<li><p>核心线程有栈，但是没有独立的地址空间。按照 Nachos 的逻辑比较容易理解——先创建用户进程然后映射。</p>
+</li>
+</ul>
+</li>
+</ul>
 
             </article>
             <hr>
@@ -224,7 +292,9 @@
                   <div class="post-meta mr-3">
                     <i class="iconfont icon-category"></i>
                     
-                      <a class="hover-with-bg" href="/categories/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84/">数据结构</a>
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+                    
+                      <a class="hover-with-bg" href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -232,9 +302,9 @@
                   <div class="post-meta">
                     <i class="iconfont icon-tags"></i>
                     
-                      <a class="hover-with-bg" href="/tags/LSM-Tree/">LSM-Tree</a>
+                      <a class="hover-with-bg" href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
                     
-                      <a class="hover-with-bg" href="/tags/%E7%A3%81%E7%9B%98/">磁盘</a>
+                      <a class="hover-with-bg" href="/tags/Nachos/">Nachos</a>
                     
                   </div>
                 
@@ -247,18 +317,12 @@
                   <div class="post-prev col-6">
                     
                     
-                      <a href="/2021/05/10/Nachos-04-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">
-                        <i class="iconfont icon-arrowleft"></i>
-                        <span class="hidden-mobile">Nachos-04-用户程序与系统调用</span>
-                        <span class="visible-mobile">上一篇</span>
-                      </a>
-                    
                   </div>
                   <div class="post-next col-6">
                     
                     
-                      <a href="/2021/04/20/%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9B%B8%E5%85%B3/">
-                        <span class="hidden-mobile">字符串相关</span>
+                      <a href="/2021/05/07/LSM-Tree/">
+                        <span class="hidden-mobile">LSM-Tree</span>
                         <span class="visible-mobile">下一篇</span>
                         <i class="iconfont icon-arrowright"></i>
                       </a>
@@ -397,7 +461,7 @@
     var typed = new Typed('#subtitle', {
       strings: [
         '  ',
-        "LSM-Tree&nbsp;",
+        "Nachos-04-用户程序与系统调用&nbsp;",
       ],
       cursorChar: "_",
       typeSpeed: 70,

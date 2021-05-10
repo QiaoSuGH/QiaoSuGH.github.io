@@ -168,6 +168,58 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/05/10/Nachos-04-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">Nachos-04-用户程序与系统调用</a>
+
+      <a href="/2021/05/10/Nachos-04-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" class="index-excerpt">
+        
+        
+          
+        
+        <div>用户进程的创建与启动StartProcess我们可以通过nachos -x filename来启动一个用户进程，其中在main.cc中根据-x参数执行StartProcess。
+
+可以看到基本逻辑非常清晰：
+
+通过文件系统打开得到对应可执行程序的 OpenFile 指针
+创建 AddrSpace 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、保存状态
+最后 Run
+
+进程地址</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-05-10
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+            
+              <a href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+            
+              <a href="/tags/Nachos/">Nachos</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/05/07/LSM-Tree/">LSM-Tree</a>
 
       <a href="/2021/05/07/LSM-Tree/" class="index-excerpt">
@@ -598,54 +650,6 @@ PrRd: The processor reque</div>
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>&nbsp;2021-04-06
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/Go/">Go</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Go/">Go</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/03/30/net-http/">net/http</a>
-
-      <a href="/2021/03/30/net-http/" class="index-excerpt">
-        
-        
-          
-        
-        <div>HTTP参考：
-
-深入学习用 Go 编写 HTTP 服务器 - Kevin Yan的文章 - 知乎 https://zhuanlan.zhihu.com/p/104182198
-
-注册路由从接口出发：
-
-http.HandleFunc(pattern,相应的处理函数P)
-
-调用Mux.HandleFunc，将P转换成HandlerFunc类型，然后调用Mux.Handle(pattern,Hand</div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-03-30
           </div>
         
         

@@ -168,6 +168,54 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/03/30/net-http/">net/http</a>
+
+      <a href="/2021/03/30/net-http/" class="index-excerpt">
+        
+        
+          
+        
+        <div>HTTP参考：
+
+深入学习用 Go 编写 HTTP 服务器 - Kevin Yan的文章 - 知乎 https://zhuanlan.zhihu.com/p/104182198
+
+注册路由从接口出发：
+
+http.HandleFunc(pattern,相应的处理函数P)
+
+调用Mux.HandleFunc，将P转换成HandlerFunc类型，然后调用Mux.Handle(pattern,Hand</div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-03-30
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/Go/">Go</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/Go/">Go</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/03/28/Nachos-02-%E4%BF%A1%E5%8F%B7%E9%87%8F%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/">Nachos-02-信号量与线程同步</a>
 
       <a href="/2021/03/28/Nachos-02-%E4%BF%A1%E5%8F%B7%E9%87%8F%E4%B8%8E%E7%BA%BF%E7%A8%8B%E5%90%8C%E6%AD%A5/" class="index-excerpt">
@@ -570,55 +618,6 @@ TCP接收方需要告诉发送方两方面的信息：
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>&nbsp;2021-03-03
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CS144/">CS144</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a>
-            
-              <a href="/tags/CS144/">CS144</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/02/06/CS144-02-Lab1/">CS144-02-Lab1</a>
-
-      <a href="/2021/02/06/CS144-02-Lab1/" class="index-excerpt">
-        
-        
-          
-        
-        <div>
-这次实验我们需要完成一个子串重组的类。因为我们的数据包被TCP Sender分割成很多的segments。我们需要在receiver处将其重组成完整的byte-stream。
-首先，我们需要考虑大体上数据结构以及算法：
-
-substring到来随机，我们需要将其插入合适的位置。因此需要插入性能较好的结构。考虑到可能与前后的子串重合，因此需要方便地得到前后子串。
-考虑到插入，那么树形结构比较合适。</div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-02-06
           </div>
         
         
