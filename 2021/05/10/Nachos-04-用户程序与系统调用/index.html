@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      964 字
+      1.1k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      11
+      12
        分钟
     </span>
   
@@ -209,8 +209,8 @@
 <p>可以看到基本逻辑非常清晰：</p>
 <ul>
 <li>通过文件系统打开得到对应可执行程序的 <code>OpenFile</code> 指针</li>
-<li>创建 <code>AddrSpace</code> 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、保存状态</li>
-<li>最后 <code>Run</code></li>
+<li>创建 <code>AddrSpace</code> 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、将系统页表替换为当前用户进程的页表</li>
+<li>最后 <code>Run</code>：不断取出指令然后执行。</li>
 </ul>
 <h5 id="进程地址空间-AddrSpace"><a href="#进程地址空间-AddrSpace" class="headerlink" title="进程地址空间 AddrSpace"></a>进程地址空间 <code>AddrSpace</code></h5><p>这里 <code>AddrSpace</code> 的构造函数逻辑如下：</p>
 <ul>
@@ -246,7 +246,7 @@ Machine::Run()
     &#125;
 &#125;</code></pre></div>
 <p>如何获取到用户程序中的代码或者数据？</p>
-<p>在 <code>OneInstruction</code> 中调用 <code>ReadMem</code>：<code>machine-&gt;ReadMem(registers[PCReg], 4, &amp;raw)</code>，接着调用<code>Translate</code>：</p>
+<p>在 <code>OneInstruction</code> 中调用 <code>ReadMem</code>：<code>machine-&gt;ReadMem(registers[PCReg], 4, &amp;raw)</code>，其中调用<code>Translate</code> 完成虚拟内存地址到物理内存地址之间的转换：</p>
 <p><img src="https://i.loli.net/2021/05/10/UcSRTYhWPbInd6m.png" srcset="/img/loading.gif" alt="image-20210510215450791" style="zoom:67%;" /></p>
 <p>其中逻辑如下：</p>
 <ul>
@@ -257,21 +257,16 @@ Machine::Run()
 <li>如果存在 <code>tlb</code>，那么在其中寻找物理页</li>
 <li>否则在页表中寻找物理页</li>
 </ul>
-<p>当然，如果虚拟页号超过了页表大小，那么产生 <code>AddressErrorException</code>；如果不存在对应项，那么产生 <code>PageFaultException</code>。</p>
+<p>当然，如果虚拟页号超过了页表大小，那么产生 <code>AddressErrorException</code>；如果不存在对应项，那么产生 <code>PageFaultException</code>……</p>
 </li>
 <li><p>找到之后还需要进行一些检查、相关状态更新、将传入指针指向值改为物理内存地址。</p>
 </li>
 </ul>
 <p>在获取物理地址之后调用 <code>machine-&gt;mainMemory[physicalAddress]</code> 获得值。</p>
 <p>回到 <code>OneInstruction</code>，我们目前已经通过 <code>ReadMem</code> 获得了 PC 寄存器指向的指令，接着对其进行译码，得到不同的指令操作类型。</p>
-<p>如果是 <code>OP_JAL</code>，那么<code>registers[R31] = registers[NextPCReg] + 4</code>。注意执行之后并没有 <code>break</code>，而是继续执行 <code>OP_J</code> 的处理：</p>
-<p><code>pcAfter = (pcAfter &amp; 0xf0000000) | IndexToAddr(instr-&gt;extra)</code>。</p>
-<p>ToDo：</p>
-<ul>
-<li><p>为什么 ReadMem 中会根据不同的 size 进行不同的转换？</p>
-</li>
-<li><p><code>JAL</code> 和 <code>J</code> 的区别，以及具体逻辑？</p>
-</li>
+<p>如果是 <code>OP_JAL</code>，那么需要保存跳转之后返回时需要执行的指令地址，<code>registers[R31] = registers[NextPCReg] + 4</code>。注意执行之后并没有 <code>break</code>，而是继续执行 <code>OP_J</code> 的处理：<code>pcAfter = (pcAfter &amp; 0xf0000000) | IndexToAddr(instr-&gt;extra)</code>。后续会再把 <code>pcAfter</code> 的值赋给 <code>registers[NextPCReg]</code>。</p>
+<h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>目前在创建用户进程时，虚拟内存和物理内存之间是线性映射的—— virtual page number 和 physical page number 一致。而且在映射到核心线程时直接将当前进程的页表传递给系统页表。如果考虑多道程序设计，那么必须首先分配空闲的实页，在进程结束运行时释放拥有的实页。</p>
+<h4 id="Linux-相关"><a href="#Linux-相关" class="headerlink" title="Linux 相关"></a>Linux 相关</h4><ul>
 <li><p>对用户态和内核态的思考——实际 Linux 中如何实现的？</p>
 <ul>
 <li>系统调用进入内核态意味着执行内核代码</li>

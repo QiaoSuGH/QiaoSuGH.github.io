@@ -180,10 +180,7 @@
 可以看到基本逻辑非常清晰：
 
 通过文件系统打开得到对应可执行程序的 OpenFile 指针
-创建 AddrSpace 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、保存状态
-最后 Run
-
-进程地址</div>
+创建 AddrSpace 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、将系统页表替换为当前用户进程的页表</div>
       </a>
 
       <div class="index-btm post-metas">
