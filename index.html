@@ -168,6 +168,50 @@
     
     
     <div class="col-12 col-md-12 mx-auto index-info">
+      <a class="index-header" href="/2021/05/17/Nachos-05-%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">Nachos-05-地址空间与系统调用</a>
+
+      <a href="/2021/05/17/Nachos-05-%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" class="index-excerpt">
+        
+        
+          
+        
+        <div></div>
+      </a>
+
+      <div class="index-btm post-metas">
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-date"></i>&nbsp;2021-05-17
+          </div>
+        
+        
+          <div class="post-meta mr-3">
+            <i class="iconfont icon-category"></i>
+            
+              <a href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+            
+              <a href="/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/Nachos/">Nachos</a>
+            
+          </div>
+        
+        
+          <div class="post-meta">
+            <i class="iconfont icon-tags"></i>
+            
+              <a href="/tags/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/">操作系统</a>
+            
+              <a href="/tags/Nachos/">Nachos</a>
+            
+          </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <div class="row mx-auto index-card">
+    
+    
+    <div class="col-12 col-md-12 mx-auto index-info">
       <a class="index-header" href="/2021/05/10/Nachos-04-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">Nachos-04-用户程序与系统调用</a>
 
       <a href="/2021/05/10/Nachos-04-%E7%94%A8%E6%88%B7%E7%A8%8B%E5%BA%8F%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/" class="index-excerpt">
@@ -175,12 +219,9 @@
         
           
         
-        <div>用户进程的创建与启动StartProcess我们可以通过nachos -x filename来启动一个用户进程，其中在main.cc中根据-x参数执行StartProcess。
-
-可以看到基本逻辑非常清晰：
-
-通过文件系统打开得到对应可执行程序的 OpenFile 指针
-创建 AddrSpace 对象并覆盖当前 thread 的 space。之后就是初始化寄存器、将系统页表替换为当前用户进程的页表</div>
+        <div>用户进程的创建与启动可执行文件的创建nachos 当中可执行文件为 noff 格式，实际编译时会产生 coff 格式，然后再转换成 noff 格式。
+因为我们执行程序时从 0 地址开始进行取指，所以在链接时将 start.s 放到第一段，其中实现了系统调用，而且第一条指令就是跳转到 main 函数。
+StartProcess我们可以通过nachos -x filename来启动一个用户进程，其中在</div>
       </a>
 
       <div class="index-btm post-metas">
@@ -451,11 +492,11 @@ Plguin 需要有自己的 main package编译的时候，使用 go build -buildmo
           <div class="post-meta">
             <i class="iconfont icon-tags"></i>
             
-              <a href="/tags/MapReduce/">MapReduce</a>
-            
               <a href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E7%B3%BB%E7%BB%9F/">分布式系统</a>
             
               <a href="/tags/MIT6-824/">MIT6.824</a>
+            
+              <a href="/tags/MapReduce/">MapReduce</a>
             
           </div>
         
@@ -595,58 +636,6 @@ PrRd: The processor reque</div>
         
           <div class="post-meta mr-3">
             <i class="iconfont icon-date"></i>&nbsp;2021-04-11
-          </div>
-        
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-category"></i>
-            
-              <a href="/categories/Go/">Go</a>
-            
-          </div>
-        
-        
-          <div class="post-meta">
-            <i class="iconfont icon-tags"></i>
-            
-              <a href="/tags/Go/">Go</a>
-            
-          </div>
-        
-      </div>
-    </div>
-  </div>
-
-  <div class="row mx-auto index-card">
-    
-    
-    <div class="col-12 col-md-12 mx-auto index-info">
-      <a class="index-header" href="/2021/04/06/map%E7%9A%84%E5%AE%9E%E7%8E%B0/">map的实现</a>
-
-      <a href="/2021/04/06/map%E7%9A%84%E5%AE%9E%E7%8E%B0/" class="index-excerpt">
-        
-        
-          
-        
-        <div>我们首先考虑实现一个性能良好的哈希表的可能方面：
-
-哈希函数的选择——如何选择性能较好的哈希函数
-冲突的解决
-
-拉链法相较于开放寻址的优点
-装载因子对性能的影响
-
-
-扩容
-
-
-</div>
-      </a>
-
-      <div class="index-btm post-metas">
-        
-          <div class="post-meta mr-3">
-            <i class="iconfont icon-date"></i>&nbsp;2021-04-06
           </div>
         
         

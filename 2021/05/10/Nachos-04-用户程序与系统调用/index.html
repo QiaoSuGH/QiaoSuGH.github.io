@@ -204,7 +204,9 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h4 id="用户进程的创建与启动"><a href="#用户进程的创建与启动" class="headerlink" title="用户进程的创建与启动"></a>用户进程的创建与启动</h4><h5 id="StartProcess"><a href="#StartProcess" class="headerlink" title="StartProcess"></a><code>StartProcess</code></h5><p>我们可以通过<code>nachos -x filename</code>来启动一个用户进程，其中在<code>main.cc</code>中根据<code>-x</code>参数执行<code>StartProcess</code>。</p>
+              <h4 id="用户进程的创建与启动"><a href="#用户进程的创建与启动" class="headerlink" title="用户进程的创建与启动"></a>用户进程的创建与启动</h4><h5 id="可执行文件的创建"><a href="#可执行文件的创建" class="headerlink" title="可执行文件的创建"></a>可执行文件的创建</h5><p>nachos 当中可执行文件为 noff 格式，实际编译时会产生 coff 格式，然后再转换成 noff 格式。</p>
+<p>因为我们执行程序时从 0 地址开始进行取指，所以在链接时将 start.s 放到第一段，其中实现了系统调用，而且第一条指令就是跳转到 main 函数。</p>
+<h5 id="StartProcess"><a href="#StartProcess" class="headerlink" title="StartProcess"></a><code>StartProcess</code></h5><p>我们可以通过<code>nachos -x filename</code>来启动一个用户进程，其中在<code>main.cc</code>中根据<code>-x</code>参数执行<code>StartProcess</code>。</p>
 <p><img src="https://i.loli.net/2021/05/10/m6ndBTyHFbMYuUI.png" srcset="/img/loading.gif" alt="image-20210510204414727" style="zoom:50%;" /></p>
 <p>可以看到基本逻辑非常清晰：</p>
 <ul>
@@ -266,18 +268,6 @@ Machine::Run()
 <p>回到 <code>OneInstruction</code>，我们目前已经通过 <code>ReadMem</code> 获得了 PC 寄存器指向的指令，接着对其进行译码，得到不同的指令操作类型。</p>
 <p>如果是 <code>OP_JAL</code>，那么需要保存跳转之后返回时需要执行的指令地址，<code>registers[R31] = registers[NextPCReg] + 4</code>。注意执行之后并没有 <code>break</code>，而是继续执行 <code>OP_J</code> 的处理：<code>pcAfter = (pcAfter &amp; 0xf0000000) | IndexToAddr(instr-&gt;extra)</code>。后续会再把 <code>pcAfter</code> 的值赋给 <code>registers[NextPCReg]</code>。</p>
 <h4 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h4><p>目前在创建用户进程时，虚拟内存和物理内存之间是线性映射的—— virtual page number 和 physical page number 一致。而且在映射到核心线程时直接将当前进程的页表传递给系统页表。如果考虑多道程序设计，那么必须首先分配空闲的实页，在进程结束运行时释放拥有的实页。</p>
-<h4 id="Linux-相关"><a href="#Linux-相关" class="headerlink" title="Linux 相关"></a>Linux 相关</h4><ul>
-<li><p>对用户态和内核态的思考——实际 Linux 中如何实现的？</p>
-<ul>
-<li>系统调用进入内核态意味着执行内核代码</li>
-<li>Linux 中 fork 的细节实现？</li>
-<li><p>用户线程映射到核心线程其实就是将核心线程将要执行的指令指向用户线程的指令</p>
-</li>
-<li><p>核心线程有栈，但是没有独立的地址空间。按照 Nachos 的逻辑比较容易理解——先创建用户进程然后映射。</p>
-</li>
-</ul>
-</li>
-</ul>
 
             </article>
             <hr>
@@ -311,6 +301,12 @@ Machine::Run()
                 <div class="post-prevnext row">
                   <div class="post-prev col-6">
                     
+                    
+                      <a href="/2021/05/17/Nachos-05-%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4%E4%B8%8E%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">Nachos-05-地址空间与系统调用</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
                     
                   </div>
                   <div class="post-next col-6">
