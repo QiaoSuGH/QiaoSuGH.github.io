@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      0 字
+      289 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      2
        分钟
     </span>
   
@@ -204,7 +204,24 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              
+              <h3 id="扩展地址空间"><a href="#扩展地址空间" class="headerlink" title="扩展地址空间"></a>扩展地址空间</h3><h4 id="内存分配"><a href="#内存分配" class="headerlink" title="内存分配"></a>内存分配</h4><h5 id="分析与思路"><a href="#分析与思路" class="headerlink" title="分析与思路"></a>分析与思路</h5><p>在之前的实验中我们知道 Nachos 的内存分配是虚拟内存与物理内存直接一一映射的，即每次直接将从 0 开始的物理内存分配给进程。简单的扩展方法就是利用一个 bitmap 标记物理内存。</p>
+<p>具体来说包括以下内容：</p>
+<ul>
+<li>初始化 bitmap，大小为物理页数目</li>
+<li>创建进程时首先判断是否有足够的空闲页，如果有那么依次寻找空闲的进行分配；否则引发异常</li>
+<li>分配完成之后需要进行读取，即将文件中的内容读取到分配的物理页</li>
+<li>在进程退出时需要释放分配的物理页</li>
+</ul>
+<h5 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h5><p>在 <code>AddrSpace</code> 类中添加 static 成员。</p>
+<p><img src="https://i.loli.net/2021/05/17/g7qZpLhQAoSMbB6.png" srcset="/img/loading.gif" alt="image-20210517140000420"></p>
+<p>构造函数中进行分配：</p>
+<p><img src="https://i.loli.net/2021/05/17/po8h1nrv6wDIMQ7.png" srcset="/img/loading.gif" alt="image-20210517140934504" style="zoom:80%;" /></p>
+<p>注意在将可执行文件读入物理内存时的地址。从虚拟地址变换到物理地址只是替换页号，业内偏移不变。</p>
+<p><img src="https://i.loli.net/2021/05/17/9jAq7prmsWfHt8k.png" srcset="/img/loading.gif" alt="image-20210517141109783" style="zoom:67%;" /></p>
+<p>析构时注意释放：</p>
+<p><img src="https://i.loli.net/2021/05/17/JZ4QTF7gbxkvwRd.png" srcset="/img/loading.gif" alt="image-20210517141243570" style="zoom:67%;" /></p>
+<p>注意修改 Makefile.local 中的 INCPATH，然后将其添加到 Makefile。</p>
+<h4 id="实现系统调用"><a href="#实现系统调用" class="headerlink" title="实现系统调用"></a>实现系统调用</h4>
             </article>
             <hr>
             <div>
