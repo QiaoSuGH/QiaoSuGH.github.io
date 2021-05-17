@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      289 字
+      891 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      2
+      9
        分钟
     </span>
   
@@ -213,7 +213,7 @@
 <li>在进程退出时需要释放分配的物理页</li>
 </ul>
 <h5 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h5><p>在 <code>AddrSpace</code> 类中添加 static 成员。</p>
-<p><img src="https://i.loli.net/2021/05/17/g7qZpLhQAoSMbB6.png" srcset="/img/loading.gif" alt="image-20210517140000420"></p>
+<p><img src="https://i.loli.net/2021/05/17/g7qZpLhQAoSMbB6.png" srcset="/img/loading.gif" alt="image-20210517140000420" style="zoom: 80%;" /></p>
 <p>构造函数中进行分配：</p>
 <p><img src="https://i.loli.net/2021/05/17/po8h1nrv6wDIMQ7.png" srcset="/img/loading.gif" alt="image-20210517140934504" style="zoom:80%;" /></p>
 <p>注意在将可执行文件读入物理内存时的地址。从虚拟地址变换到物理地址只是替换页号，业内偏移不变。</p>
@@ -221,7 +221,31 @@
 <p>析构时注意释放：</p>
 <p><img src="https://i.loli.net/2021/05/17/JZ4QTF7gbxkvwRd.png" srcset="/img/loading.gif" alt="image-20210517141243570" style="zoom:67%;" /></p>
 <p>注意修改 Makefile.local 中的 INCPATH，然后将其添加到 Makefile。</p>
-<h4 id="实现系统调用"><a href="#实现系统调用" class="headerlink" title="实现系统调用"></a>实现系统调用</h4>
+<h4 id="PID"><a href="#PID" class="headerlink" title="PID"></a>PID</h4><p>同样使用 bitmap 进行标示，唯一的不同在于这里我将 0-15 分配给核心线程，用户进程的 PID 从16 开始。</p>
+<p>考虑到后续 Exec 系统调用的实现需要返回 spaceID，因此再添加一个成员函数 <code>getSpaceID</code>。</p>
+<h4 id="状态保存与恢复"><a href="#状态保存与恢复" class="headerlink" title="状态保存与恢复"></a>状态保存与恢复</h4><p>这里原本已经实现了将状态——页表传递给 machine，只需要实现 <code>SaveState</code> 即可。</p>
+<p><img src="https://i.loli.net/2021/05/17/Ym2V1KAucBMzewX.png" srcset="/img/loading.gif" alt="image-20210517153521438" style="zoom:67%;" /></p>
+<h3 id="实现系统调用"><a href="#实现系统调用" class="headerlink" title="实现系统调用"></a>实现系统调用</h3><h4 id="系统调用原理"><a href="#系统调用原理" class="headerlink" title="系统调用原理"></a>系统调用原理</h4><h5 id="基本过程"><a href="#基本过程" class="headerlink" title="基本过程"></a>基本过程</h5><p>在运行用户程序时，机器会不断地取出指令（涉及到虚拟地址和物理地址之间地转换），进行译码——如果类型为 <code>OP_SYSCALL</code>，那么调用 <code>RaiseException</code> ，传入参数包括系统调用类型的异常。异常类型如下：</p>
+<p><img src="https://i.loli.net/2021/05/17/OwU314EYqHaSM2d.png" srcset="/img/loading.gif" alt="image-20210517154921532" style="zoom:50%;" /></p>
+<p>该函数会陷入内核态，然后调用异常处理函数 <code>ExceptionHandler</code>（将系统调用类型的异常号传递给它），处理完成再返回用户态。</p>
+<p>异常处理函数：</p>
+<p><img src="https://i.loli.net/2021/05/17/Kd9hxug5RYSbBwl.png" srcset="/img/loading.gif" alt="image-20210517160514926" style="zoom:67%;" /></p>
+<p>可以看到：</p>
+<ul>
+<li><p>2 号寄存器保存着系统调用号</p>
+</li>
+<li><p>目前只实现了 <code>Halt</code> 系统调用</p>
+</li>
+</ul>
+<h5 id="从用户程序到系统调用的执行"><a href="#从用户程序到系统调用的执行" class="headerlink" title="从用户程序到系统调用的执行"></a>从用户程序到系统调用的执行</h5><p>用户程序会链接 start.s，其中包括各系统调用——将系统调用号保存在 2 号寄存器，然后跳转到系统调用，完成之后再通过 31 号寄存器返回继续执行。在编译成机器指令之后，系统调用的汇编中的 <code>syscall</code> 对应着操作码为 <code>OP_SYSCALL</code> 的指令，因此会产生类型为系统调用的异常，在其中陷入内核态，执行异常处理函数——从 2 号寄存器中取出系统调用号，然后执行相应的处理，最后返回用户态。当然这中间 PC 是一直推进的。</p>
+<h4 id="实现-Exec"><a href="#实现-Exec" class="headerlink" title="实现 Exec"></a>实现 Exec</h4><h5 id="分析与思路-1"><a href="#分析与思路-1" class="headerlink" title="分析与思路"></a>分析与思路</h5><p>Exec 系统调用的功能就是加载并运行某个应用程序。因此显然其实现大致分为两部分：</p>
+<ul>
+<li>为应用程序创建一个 AddrSpace 对象</li>
+<li>创建一个核心线程，将上面的 AddrSpace 传递给该核心线程</li>
+</ul>
+<p>前者比较简单，逻辑与 startProcess 类似，需要注意的就是我们的参数依次在 4/5/6/7 四个寄存器当中。这里 4 号寄存器实际保存的是字符串的虚拟内存地址。</p>
+<p>最后我们需要将 spaceId 的值返回——通过写入寄存器（2/3 号）的方式。</p>
+<h5 id="实现-1"><a href="#实现-1" class="headerlink" title="实现"></a>实现</h5>
             </article>
             <hr>
             <div>
@@ -254,6 +278,12 @@
                 <div class="post-prevnext row">
                   <div class="post-prev col-6">
                     
+                    
+                      <a href="/2021/05/17/%E5%AD%98%E5%82%A8%E5%99%A8%E3%80%81%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E4%B8%8E%E5%AD%98%E5%82%A8%E7%BB%93%E6%9E%84/">
+                        <i class="iconfont icon-arrowleft"></i>
+                        <span class="hidden-mobile">存储器、文件系统与存储结构</span>
+                        <span class="visible-mobile">上一篇</span>
+                      </a>
                     
                   </div>
                   <div class="post-next col-6">
