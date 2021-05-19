@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      971 字
+      975 字
     </span>
   
 
@@ -213,26 +213,26 @@
 <li>第一个进程是如何创建的？</li>
 </ul>
 <p>……</p>
-<p>产生疑惑的重要原因就在于没有看内核设计、没有看源码，导致都是在一些抽象概念上面游走。所以现在结合Nachos以及Linux内核设计与实现来真正理解OS。当然，并不会逐句分析源码，仅仅分析关键部分。</p>
+<p>产生疑惑的重要原因就在于没有看内核设计、没有看源码，导致都是在一些抽象概念上面游走。所以现在结合 Nachos 以及 Linux 内核设计与实现来真正理解 OS。当然，并不会逐句分析源码，仅仅分析关键部分。</p>
 <blockquote>
 <p>以下内容主要围绕参考书的问题</p>
 </blockquote>
-<h5 id="Nachos命令行参数及其处理"><a href="#Nachos命令行参数及其处理" class="headerlink" title="Nachos命令行参数及其处理"></a>Nachos命令行参数及其处理</h5><p>主要是赋给初始化函数，然后处理一些debug相关的设置。</p>
+<h5 id="Nachos命令行参数及其处理"><a href="#Nachos命令行参数及其处理" class="headerlink" title="Nachos命令行参数及其处理"></a>Nachos命令行参数及其处理</h5><p>主要是赋给初始化函数，然后处理一些 debug 相关的设置。</p>
 <h5 id="main线程的创建"><a href="#main线程的创建" class="headerlink" title="main线程的创建"></a>main线程的创建</h5><p><code>main.cc--&gt;system.cc.Initialize--&gt;currentthread = new Thread(&quot;main&quot;)</code></p>
-<p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个<code>char * debugName</code>。真正执行时我们会用到<code>fork</code>函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p>
+<p><code>thread.h</code>定义了线程类，我们创建线程的时候只需要提供一个 <code>char * debugName</code>。真正执行时我们会用到 <code>fork</code> 函数：<code>void Fork(VoidFunctionPtr func, _int arg); // Make thread run (*func)(arg)</code>。</p>
 <div class="hljs"><pre><code class="hljs c++">currentThread = <span class="hljs-keyword">new</span> Thread(<span class="hljs-string">"main"</span>);		
 currentThread-&gt;setStatus(RUNNING);</code></pre></div>
-<p>在<code>new Thread</code>之后我们进入了<code>thread</code>类的构造函数，不过目前我们并没有为其分配栈等资源，状态为<code>JUST_CREATED</code>。</p>
+<p>在 <code>new Thread</code>之后我们进入了 <code>thread</code> 类的构造函数，不过目前我们并没有为其分配栈等资源，状态为 <code>JUST_CREATED</code>。</p>
 <p><img src="https://i.loli.net/2021/03/24/4VeKdGRlAnYoarp.png" srcset="/img/loading.gif" alt="image-20210324145718373"></p>
-<p>可以看到<strong>main thread的地址为0x56562c60</strong>。</p>
+<p>可以看到 <strong>main thread 的地址为 0x56562c60</strong>。</p>
 <p>后续又进行了中断相关的设置，最后完成了初始化的函数。接着就进入下面的函数。</p>
 <h5 id="ThreadTest"><a href="#ThreadTest" class="headerlink" title="ThreadTest"></a><code>ThreadTest</code></h5><ul>
-<li>创建了一个线程，名为“forked thread”：</li>
+<li>创建了一个线程，名为 “forked thread”：</li>
 </ul>
 <p><img src="https://i.loli.net/2021/03/24/9QsRZCJHBzSdqUM.png" srcset="/img/loading.gif" alt="image-20210324155308502"></p>
-<p>​       <strong>可以看到其地址为0x56562cc0</strong></p>
+<p>​       <strong>可以看到其地址为 0x56562cc0</strong></p>
 <ul>
-<li>接着我们调用<code>Fork</code>，传入了函数<code>simpleThread</code>——循环，每次都会释放CPU的使用权。在<code>Fork</code>成员函数内部为其分配栈空间：<code>StackAllocate(func, arg);</code>。</li>
+<li>接着我们调用 <code>Fork</code>，传入了函数 <code>simpleThread</code>——循环，每次都会释放 CPU 的使用权。在 <code>Fork</code> 成员函数内部为其分配栈空间：<code>StackAllocate(func, arg);</code>。</li>
 </ul>
 <p><img src="https://i.loli.net/2021/03/24/aFJO9gkQxEc4r6n.png" srcset="/img/loading.gif" alt="image-20210324152753095" style="zoom:67%;" /></p>
 <p>​        <strong>继续，我们可以得到：</strong></p>

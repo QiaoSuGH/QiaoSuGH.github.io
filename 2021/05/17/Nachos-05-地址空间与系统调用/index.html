@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      891 字
+      1.5k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      9
+      16
        分钟
     </span>
   
@@ -243,9 +243,64 @@
 <li>为应用程序创建一个 AddrSpace 对象</li>
 <li>创建一个核心线程，将上面的 AddrSpace 传递给该核心线程</li>
 </ul>
-<p>前者比较简单，逻辑与 startProcess 类似，需要注意的就是我们的参数依次在 4/5/6/7 四个寄存器当中。这里 4 号寄存器实际保存的是字符串的虚拟内存地址。</p>
-<p>最后我们需要将 spaceId 的值返回——通过写入寄存器（2/3 号）的方式。</p>
-<h5 id="实现-1"><a href="#实现-1" class="headerlink" title="实现"></a>实现</h5>
+<p>前者比较简单，逻辑与 startProcess 类似，需要注意的就是我们的参数依次在 4/5/6/7 四个寄存器当中。这里 4 号寄存器实际保存的是字符串的虚拟内存地址。之后创建的核心线程传入的函数需要执行：初始化寄存器；将 AddrSpace 传递给 machine。完成之后此时变已经有了新的核心线程。</p>
+<p>然后我们需要将 spaceId 的值返回——通过写入寄存器（2/3 号）的方式。再推进 PC，继续执行原来的用户程序。</p>
+<h5 id="实现-1"><a href="#实现-1" class="headerlink" title="实现"></a>实现</h5><blockquote>
+<p>出现了一个小问题，VSCode 从 machine-&gt;Run() 跳转到了 scheduler-&gt;Run()……</p>
+</blockquote>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">case</span> SC_Exec:&#123;
+                <span class="hljs-comment">//读取参数</span>
+                <span class="hljs-keyword">int</span> addr = machine-&gt;ReadRegister(<span class="hljs-number">4</span>);
+                <span class="hljs-keyword">char</span> fileName[<span class="hljs-number">50</span>];
+                <span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>;
+                <span class="hljs-keyword">while</span>(<span class="hljs-literal">true</span>)
+                &#123;
+                    machine-&gt;ReadMem(addr+i,<span class="hljs-number">1</span>,(<span class="hljs-keyword">int</span>*)&amp;fileName[i]);
+                    <span class="hljs-keyword">if</span>(fileName[i++] == <span class="hljs-string">'\0'</span>)<span class="hljs-keyword">break</span>;
+                &#125;
+                OpenFile *executable = fileSystem-&gt;Open(fileName);
+                <span class="hljs-keyword">if</span>(executable == <span class="hljs-literal">NULL</span>)
+                &#123;
+                    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"Failed to open file %s\n"</span>,fileName);
+                    advancePC();
+                    <span class="hljs-keyword">return</span>;
+                &#125;
+                <span class="hljs-comment">//新建AddrSpace</span>
+                AddrSpace *space = <span class="hljs-keyword">new</span> AddrSpace(executable);
+                <span class="hljs-keyword">delete</span> executable;
+                <span class="hljs-comment">//新建核心线程</span>
+                Thread *thread = <span class="hljs-keyword">new</span> Thread(fileName);
+                thread-&gt;space = space;
+                thread-&gt;Fork(execProcess,space-&gt;getSpaceID());
+                machine-&gt;WriteRegister(<span class="hljs-number">2</span>,space-&gt;getSpaceID());
+                advancePC();
+                <span class="hljs-keyword">break</span>;
+            &#125;</code></pre></div>
+<h5 id="测试"><a href="#测试" class="headerlink" title="测试"></a>测试</h5><p><img src="https://i.loli.net/2021/05/18/hxIGSUeQkgBjH5c.png" srcset="/img/loading.gif" alt="image-20210518133337995" style="zoom:50%;" /></p>
+<p>可以看到成功执行了 Exec 系统调用，并且第二次创建的页表物理页从 11 开始，第一次最后的物理页为 10，所以物理页的分配也是正常的。</p>
+<h5 id="DEBUG"><a href="#DEBUG" class="headerlink" title="DEBUG"></a>DEBUG</h5><p>比较奇怪的是程序输出了 <code>Unexpected user mode exception 5 17</code>。这是不应该出现的。并且 which = 5，type = 17。对应的是 <code>AddressErrorException</code>。</p>
+<p>而在 <code>mipssim.cc</code> 中，该错误只存在两个地方，对应着三种 <code>OP</code>。结果发现并没有产生对应错误，那么说明不是在这里。</p>
+<p>考虑使用 VSCode 调试。这里还是折腾了一会儿：</p>
+<ul>
+<li>因为涉及到其他文件，因此工作目录需要是整个文件，而非 lab7-8 文件夹</li>
+<li>所以还需要修改 exec.c：将原本的 “../test/exec.noff” 替换成 “code/test/exec.noff”，再重新编译</li>
+<li>在所有返回 <code>AddressErrorException</code> 的地方打上断点</li>
+</ul>
+<p>最后发现 translate 函数出现错误：</p>
+<p><img src="https://i.loli.net/2021/05/18/4YNPz3UCneH7QFt.png" srcset="/img/loading.gif" alt="image-20210518150114864" style="zoom:80%;" /></p>
+<p>那么自然添加更加详细的 log 信息：</p>
+<p><img src="https://i.loli.net/2021/05/18/RcQAY71kCFIaH8M.png" srcset="/img/loading.gif" alt="image-20210518151728769" style="zoom:80%;" /></p>
+<p>运行：</p>
+<p><img src="https://i.loli.net/2021/05/18/Uo2x3Op7uKvTPBY.png" srcset="/img/loading.gif" alt="image-20210518151756674"></p>
+<p>那么这里可能有三种情况：</p>
+<ul>
+<li>正常情况，确实如此</li>
+<li>translate 函数处理不正确</li>
+<li>AddrSpace 构造时没有正确读入程序</li>
+</ul>
+<p>经过实验，第一种情况不太可能，因为去掉 exec.c 最后的 <code>Halt</code> 会发现仍然出错——理论上这会减小程序的虚拟内存大小（代码段减小了）。</p>
+<p>接着我又进行测试，将 Exec.c 中的创建程序替换为一个不存在的文件，这样在执行时会打开失败，奇怪的是，此时执行正常。两者区别仅仅是是否执行了系统调用。但是从理论上来说这里无非是有无成功创建另外一个进程。</p>
+<h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4>
             </article>
             <hr>
             <div>
