@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.5k 字
+      1.7k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      16
+      18
        分钟
     </span>
   
@@ -286,7 +286,7 @@
 <li>所以还需要修改 exec.c：将原本的 “../test/exec.noff” 替换成 “code/test/exec.noff”，再重新编译</li>
 <li>在所有返回 <code>AddressErrorException</code> 的地方打上断点</li>
 </ul>
-<p>最后发现 translate 函数出现错误：</p>
+<p>最后发现 <code>translate</code> 函数出现错误：</p>
 <p><img src="https://i.loli.net/2021/05/18/4YNPz3UCneH7QFt.png" srcset="/img/loading.gif" alt="image-20210518150114864" style="zoom:80%;" /></p>
 <p>那么自然添加更加详细的 log 信息：</p>
 <p><img src="https://i.loli.net/2021/05/18/RcQAY71kCFIaH8M.png" srcset="/img/loading.gif" alt="image-20210518151728769" style="zoom:80%;" /></p>
@@ -296,10 +296,14 @@
 <ul>
 <li>正常情况，确实如此</li>
 <li>translate 函数处理不正确</li>
-<li>AddrSpace 构造时没有正确读入程序</li>
+<li>AddrSpace 构造时出现问题，可能没有正确读入程序</li>
 </ul>
 <p>经过实验，第一种情况不太可能，因为去掉 exec.c 最后的 <code>Halt</code> 会发现仍然出错——理论上这会减小程序的虚拟内存大小（代码段减小了）。</p>
 <p>接着我又进行测试，将 Exec.c 中的创建程序替换为一个不存在的文件，这样在执行时会打开失败，奇怪的是，此时执行正常。两者区别仅仅是是否执行了系统调用。但是从理论上来说这里无非是有无成功创建另外一个进程。</p>
+<p>上面的发现给了我们启示，可以通过注释代码来判断哪些代码导致了错误。最终发现只要构造了 AddrSpace 实例，那么就会出错。那么可以肯定问题一定在这里。</p>
+<p>最终发现，问题在于 <code>bzero</code> 函数，之前的实现是清空了整个内存空间，导致之后执行 <code>OneInstruction</code> 函数时读取到的为全 0，导致错误。这也和我们之前开启 Debug 之后发现的读取指令全部相同的现象一致。</p>
+<p>解决：分配物理内存之后立刻进行清空。</p>
+<p><img src="https://i.loli.net/2021/05/19/ZIFcluMbxKEjfro.png" srcset="/img/loading.gif" alt="image-20210519170912209" style="zoom: 67%;" /></p>
 <h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4>
             </article>
             <hr>
