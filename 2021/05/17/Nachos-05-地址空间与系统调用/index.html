@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      1.7k 字
+      2.6k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      18
+      29
        分钟
     </span>
   
@@ -304,7 +304,109 @@
 <p>最终发现，问题在于 <code>bzero</code> 函数，之前的实现是清空了整个内存空间，导致之后执行 <code>OneInstruction</code> 函数时读取到的为全 0，导致错误。这也和我们之前开启 Debug 之后发现的读取指令全部相同的现象一致。</p>
 <p>解决：分配物理内存之后立刻进行清空。</p>
 <p><img src="https://i.loli.net/2021/05/19/ZIFcluMbxKEjfro.png" srcset="/img/loading.gif" alt="image-20210519170912209" style="zoom: 67%;" /></p>
-<h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4>
+<h4 id="实现-Yield"><a href="#实现-Yield" class="headerlink" title="实现 Yield"></a>实现 Yield</h4><p>直接让当前线程执行 <code>Yield()</code> 即可。</p>
+<h4 id="实现-Join"><a href="#实现-Join" class="headerlink" title="实现 Join"></a>实现 Join</h4><h5 id="分析与思路-2"><a href="#分析与思路-2" class="headerlink" title="分析与思路"></a>分析与思路</h5><p>Join 的功能就是等待子进程结束然后父进程才返回。那么在调用 Yield 时有两种可能：</p>
+<ul>
+<li>子进程已经结束，直接返回</li>
+<li>子进程尚未结束，需要等待</li>
+</ul>
+<p>那么我们必须可以<strong>查找子进程的状态</strong>。我们拥有的信息包括子进程的 spaceId，可以判断某个进程是不是子进程。另外，进程状态目前包括：<code>enum ThreadStatus { JUST_CREATED, RUNNING, READY, BLOCKED };</code>。因为可能有比较多的阻塞队列，所以目前无法直接找到确定子进程状态。一种方式就是扩展状态，增加 TERMINATED 状态，从而在对应队列中寻找子进程，如果找到那么说明结束，否则阻塞等待。</p>
+<p>为了配合这一点，我们还需要实现：</p>
+<ul>
+<li><code>Thread</code> 层面，子进程结束调用 <code>Finish</code> 时，需要加入终止队列；并且检查等待队列是否存在父进程，若存在那么进行唤醒<ul>
+<li>需要获取等待队列</li>
+<li>在等待队列中遍历寻找父进程——这意味着我们需要记录某个进程等待的子进程的 spacId，记作变量 <code>waitProcessSpacesId</code>，通过队列中的指针调用函数获取进程的该变量的值，并与当前进程的 spaceId 进行比较，如果一致，那么将其状态改为 <code>ReadyToRun</code>，并从等待队列中删除。</li>
+</ul>
+</li>
+<li>系统调用 <code>case SC_Join</code> 层面，考虑直接调用当前线程的 <code>Join</code> 函数<ul>
+<li>通过传入的参数设置变量 <code>waitProcessSpaceId</code></li>
+<li>获取终止队列，检查有无子进程<ul>
+<li>如果有，说明子进程执行结束，那么获取退出码，从终止队列中删除子进程</li>
+<li>如果没有，那么需要阻塞，加入等待队列并 <code>sleep()</code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h5 id="实现-2"><a href="#实现-2" class="headerlink" title="实现"></a>实现</h5><p>首先搭建好整体框架、定义接口，核心就是 <code>case SC_Join</code>：</p>
+<p><img src="https://i.loli.net/2021/05/23/g96PUlh5oA13NsF.png" srcset="/img/loading.gif" alt="image-20210523171007359" style="zoom:67%;" /></p>
+<p>接下来需要完成：</p>
+<ul>
+<li><p><code>Thread</code> 类：</p>
+<ul>
+<li><p>增加子进程的退出码以及当前进程的退出码，并相应地提供了四个接口用户读取、改写</p>
+</li>
+<li><p>增加 <code>Join</code> 函数</p>
+</li>
+</ul>
+</li>
+<li><p><code>scheduler</code> 类：</p>
+<ul>
+<li>增加两个队列：等待队列和终止队列，提供相应的接口返回指针</li>
+<li>增加函数 <code>removeTerminatedThread(int spaceId)</code>：根据 spaceId 在终止队列中删除对应进程</li>
+</ul>
+</li>
+<li><p><code>List</code> 类：</p>
+<ul>
+<li>注意上面的删除操作</li>
+<li>为了在 <code>removeTerminatedThread</code> 中完成删除，还需要获取队列的首元素，然后依次比较判断</li>
+</ul>
+</li>
+</ul>
+<h5 id="扩展-List-类"><a href="#扩展-List-类" class="headerlink" title="扩展 List 类"></a>扩展 List 类</h5><p>接口：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">removeItem</span><span class="hljs-params">(ListElement *tmp)</span></span>;
+<span class="hljs-function">ListElement* <span class="hljs-title">getFirst</span><span class="hljs-params">()</span></span>&#123;<span class="hljs-keyword">return</span> first;&#125;</code></pre></div>
+<p>实现：</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">bool</span>
+List::removeItem(ListElement *tmp)
+&#123;
+    <span class="hljs-keyword">bool</span> inList = <span class="hljs-literal">false</span>;
+    ListElement *current = first, *pre = <span class="hljs-literal">NULL</span>;
+    <span class="hljs-keyword">while</span>(current != <span class="hljs-literal">NULL</span>)
+    &#123;
+        <span class="hljs-keyword">if</span>(current-&gt;item == tmp-&gt;item)&#123;
+            inList = <span class="hljs-literal">true</span>;
+            <span class="hljs-keyword">break</span>;
+        &#125;
+        pre = current;
+        current = current-&gt;next;
+    &#125;
+    <span class="hljs-keyword">if</span>(inList)&#123;
+        <span class="hljs-keyword">if</span>(first == last)first = last = <span class="hljs-literal">NULL</span>;
+        <span class="hljs-keyword">else</span>&#123;
+            <span class="hljs-keyword">if</span>(pre == <span class="hljs-literal">NULL</span>)first = first-&gt;next;
+            <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span>(current == last)&#123;
+                last = pre;
+                last-&gt;next = <span class="hljs-literal">NULL</span>;
+            &#125; <span class="hljs-keyword">else</span>&#123;
+                pre-&gt;next = current-&gt;next;
+            &#125;
+        &#125;
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    &#125;
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+&#125;</code></pre></div>
+<h5 id="扩展-scheduler-类"><a href="#扩展-scheduler-类" class="headerlink" title="扩展 scheduler 类"></a>扩展 scheduler 类</h5><h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="线程切换"><a href="#线程切换" class="headerlink" title="线程切换"></a>线程切换</h4><h5 id="不考虑用户程序"><a href="#不考虑用户程序" class="headerlink" title="不考虑用户程序"></a>不考虑用户程序</h5><p>在创建核心线程、调用 fork 时，会执行 StackAllocate 函数，其会负责初始化线程内部的机器状态——与 CPU 寄存器对应。之后在<code>scheduler:: Run()</code> 当中调用 <code>switch</code>，保存当前 CPU 寄存器到之前的线程，然后将当前线程的寄存器传递到 CPU 并执行一些初始化。</p>
+<h5 id="结合用户程序"><a href="#结合用户程序" class="headerlink" title="结合用户程序"></a>结合用户程序</h5><p>在 <code>scheduler::Run()</code> 当中，如果是用户程序，那么：</p>
+<p>切换前：</p>
+<ul>
+<li>保存机器寄存器到用户寄存器</li>
+<li>保存页表</li>
+</ul>
+<p>切换后：</p>
+<ul>
+<li>将用户寄存器写入机器的寄存器</li>
+<li>传递用户进程的页表</li>
+</ul>
+<p>TODO:</p>
+<ul>
+<li>[ ] 增加提示信息，包括退出码</li>
+<li>[ ] 关于核心线程的 ID 分配，目前都是 space-&gt;getSpaceID，局限在于必须与一个用户进程绑定，但是仅仅 fork 创建的核心线程未绑定，那么在执行时会报错<ul>
+<li>[ ] 如何解决？fork 时分配，可以使用 bitmap</li>
+</ul>
+</li>
+</ul>
+
             </article>
             <hr>
             <div>
