@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      2.6k 字
+      3.3k 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      29
+      38
        分钟
     </span>
   
@@ -245,10 +245,7 @@
 </ul>
 <p>前者比较简单，逻辑与 startProcess 类似，需要注意的就是我们的参数依次在 4/5/6/7 四个寄存器当中。这里 4 号寄存器实际保存的是字符串的虚拟内存地址。之后创建的核心线程传入的函数需要执行：初始化寄存器；将 AddrSpace 传递给 machine。完成之后此时变已经有了新的核心线程。</p>
 <p>然后我们需要将 spaceId 的值返回——通过写入寄存器（2/3 号）的方式。再推进 PC，继续执行原来的用户程序。</p>
-<h5 id="实现-1"><a href="#实现-1" class="headerlink" title="实现"></a>实现</h5><blockquote>
-<p>出现了一个小问题，VSCode 从 machine-&gt;Run() 跳转到了 scheduler-&gt;Run()……</p>
-</blockquote>
-<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">case</span> SC_Exec:&#123;
+<h5 id="实现-1"><a href="#实现-1" class="headerlink" title="实现"></a>实现</h5><div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">case</span> SC_Exec:&#123;
                 <span class="hljs-comment">//读取参数</span>
                 <span class="hljs-keyword">int</span> addr = machine-&gt;ReadRegister(<span class="hljs-number">4</span>);
                 <span class="hljs-keyword">char</span> fileName[<span class="hljs-number">50</span>];
@@ -356,6 +353,7 @@
 <h5 id="扩展-List-类"><a href="#扩展-List-类" class="headerlink" title="扩展 List 类"></a>扩展 List 类</h5><p>接口：</p>
 <div class="hljs"><pre><code class="hljs c++"><span class="hljs-function"><span class="hljs-keyword">bool</span> <span class="hljs-title">removeItem</span><span class="hljs-params">(ListElement *tmp)</span></span>;
 <span class="hljs-function">ListElement* <span class="hljs-title">getFirst</span><span class="hljs-params">()</span></span>&#123;<span class="hljs-keyword">return</span> first;&#125;</code></pre></div>
+<p>这里需要注意一下 <code>getFirst()</code> 的设计。因为我们没办法在 List 当中对  thread 类型的 item 进行操作——这与 List 的逻辑应该是分离的，所以必须每次在需要遍历的地方进行遍历，那么自然需要获取第一个元素。</p>
 <p>实现：</p>
 <div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">bool</span>
 List::removeItem(ListElement *tmp)
@@ -386,7 +384,84 @@ List::removeItem(ListElement *tmp)
     &#125;
     <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
 &#125;</code></pre></div>
-<h5 id="扩展-scheduler-类"><a href="#扩展-scheduler-类" class="headerlink" title="扩展 scheduler 类"></a>扩展 scheduler 类</h5><h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4><h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="线程切换"><a href="#线程切换" class="headerlink" title="线程切换"></a>线程切换</h4><h5 id="不考虑用户程序"><a href="#不考虑用户程序" class="headerlink" title="不考虑用户程序"></a>不考虑用户程序</h5><p>在创建核心线程、调用 fork 时，会执行 StackAllocate 函数，其会负责初始化线程内部的机器状态——与 CPU 寄存器对应。之后在<code>scheduler:: Run()</code> 当中调用 <code>switch</code>，保存当前 CPU 寄存器到之前的线程，然后将当前线程的寄存器传递到 CPU 并执行一些初始化。</p>
+<h5 id="扩展-Scheduler-类"><a href="#扩展-Scheduler-类" class="headerlink" title="扩展 Scheduler 类"></a>扩展 Scheduler 类</h5><p>首先增加等待队列和终止队列，其次我们需要实现根据 spaceId 删除终止队列中的进程，即 <code>removeTerminatedThread</code> 函数。</p>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
+<span class="hljs-built_in">Scheduler</span>::removeTerminatedThread(<span class="hljs-keyword">int</span> spaceId)
+&#123;
+    ListElement* first = terminatedList-&gt;getFirst();
+    <span class="hljs-keyword">while</span>(first != <span class="hljs-literal">NULL</span>)&#123;
+        Thread *tmp = (Thread*)first-&gt;item;
+        <span class="hljs-keyword">if</span>(tmp-&gt;getId() == spaceId)&#123;
+            <span class="hljs-keyword">if</span>(terminatedList-&gt;removeItem(first) == <span class="hljs-literal">true</span>)&#123;
+                <span class="hljs-keyword">break</span>;
+            &#125;
+            <span class="hljs-keyword">else</span>&#123;
+                <span class="hljs-built_in">printf</span>(<span class="hljs-string">"\nIn Scheduler::removeTerminatedThread: removeItem Error!\n"</span>);
+                ASSERT(<span class="hljs-literal">false</span>)
+            &#125;
+        &#125;
+        first = first-&gt;next;
+    &#125;
+&#125;</code></pre></div>
+<h5 id="扩展-Thread-类"><a href="#扩展-Thread-类" class="headerlink" title="扩展 Thread 类"></a>扩展 Thread 类</h5><p>这是比较关键的一部分，需要用到上面的实现。</p>
+<p>首先我们需要扩展 Finish。</p>
+<p>在原本的实现中，我们仅仅是将当前线程标记为待销毁、然后进入睡眠。现在，我们需要：</p>
+<ul>
+<li>判断等待队列中有无进程在等待自己</li>
+<li>将自己加入终止队列</li>
+</ul>
+<p>关键代码：</p>
+<p><img src="https://i.loli.net/2021/05/24/Fsq1OZWlIX2e3u4.png" srcset="/img/loading.gif" alt="image-20210524134239401" style="zoom:67%;" /></p>
+<p>接着我们需要实现 <code>Terminate</code> 函数，作用就是加入终止队列，并且通过调度器执行下一个进程。</p>
+<p>关键代码：</p>
+<p><img src="https://i.loli.net/2021/05/24/sV7JH8OMwETL3ID.png" srcset="/img/loading.gif" alt="image-20210524134438193" style="zoom:67%;" /></p>
+<p>最后就是最终的实现——函数 Join 了。</p>
+<p>核心逻辑也是比较清晰的：</p>
+<ul>
+<li>判断终止队列中有无子进程<ul>
+<li>如果没有，那么进入等待队列、进入睡眠状态</li>
+<li>如果有，那么删除对应的子进程</li>
+</ul>
+</li>
+</ul>
+<div class="hljs"><pre><code class="hljs c++"><span class="hljs-keyword">void</span>
+Thread::Join(<span class="hljs-keyword">int</span> spaceId)
+&#123;
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"In thread::Join, spaceId:%d\n\n"</span>,spaceId);
+    IntStatus  oldLevel = interrupt-&gt;SetLevel(IntOff);
+    childSpaceId = spaceId;
+    List *terminatedList = scheduler-&gt;getTerminatedList(); 
+    List *waitingList = scheduler-&gt;getWaitingList(); 
+
+    <span class="hljs-keyword">bool</span> inTerminatedList = FALSE;
+    ListElement *first = terminatedList-&gt;getFirst(); 
+    <span class="hljs-keyword">while</span>(first != <span class="hljs-literal">NULL</span>)&#123;
+        Thread *thread = (Thread *)first-&gt;item;  
+        <span class="hljs-keyword">if</span>(thread-&gt;getId() == spaceId)&#123;      
+            inTerminatedList = TRUE;
+            childExitCode = thread-&gt;getExitCode(); 
+            <span class="hljs-keyword">break</span>;
+        &#125; 
+        first = first-&gt;next;
+    &#125;
+    <span class="hljs-keyword">if</span>(!inTerminatedList)&#123;
+        waitingList-&gt;Append((<span class="hljs-keyword">void</span> *)<span class="hljs-keyword">this</span>);  
+        currentThread-&gt;Sleep();            
+    &#125;
+    scheduler-&gt;removeTerminatedThread(spaceId);
+    (<span class="hljs-keyword">void</span>)interrupt-&gt;SetLevel(oldLevel);
+    <span class="hljs-built_in">printf</span>(<span class="hljs-string">"thread::Join 执行完成\n\n"</span>);
+&#125;</code></pre></div>
+<h5 id="DEBUG-1"><a href="#DEBUG-1" class="headerlink" title="DEBUG"></a>DEBUG</h5><p>在实现完之后运行发现报了段错误，通过 log 信息、单步调试最后发现 <code>space == NULL</code> 导致出错。这是不正常的，因为这次实验里面创建的核心线程都与用户进程绑定了，然后就想起来其实每次创建 main 线程之后都会创建一个 forked thread 线程用于示范线程切换，最简单的做法当然是直接注释掉 threadTest。</p>
+<p>考虑更加完善的做法，我们应该定义函数线程的 ID：</p>
+<ul>
+<li>如果没有与用户进程绑定，那么返回核心线程的 ID</li>
+<li>否则返回用户进程的 spaceId</li>
+</ul>
+<p>因此我们首先需要扩展 Thread——在创建时同样使用 bitmap 进行分配；接着修改 Thread 中的 <code>Finish</code> 、 <code>Join</code> 函数、修改 <code>Scheduler::removeTerminatedThread(int spaceId)</code>函数。</p>
+<h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4><p>主要是从 4 号寄存器读出退出码，然后写入 2 号寄存器，并且保存起来——Thread 中的 exitCode 成员。</p>
+<p>需要注意的是我们目前的实现是有问题的：并非所有父进程都会 join，此时由于子进程还位于终止队列中，我们需要某种方式去删除这些进程。这里如果退出码为 99，那么将终止队列清空。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="线程切换"><a href="#线程切换" class="headerlink" title="线程切换"></a>线程切换</h4><h5 id="不考虑用户程序"><a href="#不考虑用户程序" class="headerlink" title="不考虑用户程序"></a>不考虑用户程序</h5><p>在创建核心线程、调用 fork 时，会执行 StackAllocate 函数，其会负责初始化线程内部的机器状态——与 CPU 寄存器对应。之后在<code>scheduler:: Run()</code> 当中调用 <code>switch</code>，保存当前 CPU 寄存器到之前的线程，然后将当前线程的寄存器传递到 CPU 并执行一些初始化。</p>
 <h5 id="结合用户程序"><a href="#结合用户程序" class="headerlink" title="结合用户程序"></a>结合用户程序</h5><p>在 <code>scheduler::Run()</code> 当中，如果是用户程序，那么：</p>
 <p>切换前：</p>
 <ul>
@@ -397,14 +472,6 @@ List::removeItem(ListElement *tmp)
 <ul>
 <li>将用户寄存器写入机器的寄存器</li>
 <li>传递用户进程的页表</li>
-</ul>
-<p>TODO:</p>
-<ul>
-<li>[ ] 增加提示信息，包括退出码</li>
-<li>[ ] 关于核心线程的 ID 分配，目前都是 space-&gt;getSpaceID，局限在于必须与一个用户进程绑定，但是仅仅 fork 创建的核心线程未绑定，那么在执行时会报错<ul>
-<li>[ ] 如何解决？fork 时分配，可以使用 bitmap</li>
-</ul>
-</li>
 </ul>
 
             </article>
