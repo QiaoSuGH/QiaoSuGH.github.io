@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      3.3k 字
+      3.4k 字
     </span>
   
 
@@ -461,7 +461,8 @@ Thread::Join(<span class="hljs-keyword">int</span> spaceId)
 <p>因此我们首先需要扩展 Thread——在创建时同样使用 bitmap 进行分配；接着修改 Thread 中的 <code>Finish</code> 、 <code>Join</code> 函数、修改 <code>Scheduler::removeTerminatedThread(int spaceId)</code>函数。</p>
 <h4 id="实现-Exit"><a href="#实现-Exit" class="headerlink" title="实现 Exit"></a>实现 Exit</h4><p>主要是从 4 号寄存器读出退出码，然后写入 2 号寄存器，并且保存起来——Thread 中的 exitCode 成员。</p>
 <p>需要注意的是我们目前的实现是有问题的：并非所有父进程都会 join，此时由于子进程还位于终止队列中，我们需要某种方式去删除这些进程。这里如果退出码为 99，那么将终止队列清空。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="线程切换"><a href="#线程切换" class="headerlink" title="线程切换"></a>线程切换</h4><h5 id="不考虑用户程序"><a href="#不考虑用户程序" class="headerlink" title="不考虑用户程序"></a>不考虑用户程序</h5><p>在创建核心线程、调用 fork 时，会执行 StackAllocate 函数，其会负责初始化线程内部的机器状态——与 CPU 寄存器对应。之后在<code>scheduler:: Run()</code> 当中调用 <code>switch</code>，保存当前 CPU 寄存器到之前的线程，然后将当前线程的寄存器传递到 CPU 并执行一些初始化。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><h4 id="线程切换"><a href="#线程切换" class="headerlink" title="线程切换"></a>线程切换</h4><h5 id="不考虑用户程序"><a href="#不考虑用户程序" class="headerlink" title="不考虑用户程序"></a>不考虑用户程序</h5><p>在创建核心线程、调用 fork 时，会执行 StackAllocate 函数，其会将各函数指针放在固定的位置——在 switch.h 中可以看到偏移量。</p>
+<p>switch.s 中主要有函数 ThreadRoot，分别执行开中断、执行传入的函数、执行 Finish。切换过程是连续的 lw、sw 指令，a0 寄存器存放的是旧线程，a1 存放的是新线程（指针）。</p>
 <h5 id="结合用户程序"><a href="#结合用户程序" class="headerlink" title="结合用户程序"></a>结合用户程序</h5><p>在 <code>scheduler::Run()</code> 当中，如果是用户程序，那么：</p>
 <p>切换前：</p>
 <ul>

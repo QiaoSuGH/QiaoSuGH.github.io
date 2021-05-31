@@ -163,7 +163,7 @@
     
     <span class="post-meta mr-2">
       <i class="iconfont icon-chart"></i>
-      126 字
+      240 字
     </span>
   
 
@@ -173,7 +173,7 @@
       <i class="iconfont icon-clock-fill"></i>
       
       
-      1
+      2
        分钟
     </span>
   
@@ -204,16 +204,14 @@
           <div class="post-content mx-auto" id="post">
             
             <article class="markdown-body">
-              <h5 id="Go语言层面"><a href="#Go语言层面" class="headerlink" title="Go语言层面"></a>Go语言层面</h5><ul>
-<li><p>插件的使用</p>
-<p><code>go build -buildmode = plugin ...</code></p>
+              <h3 id="Go语言层面"><a href="#Go语言层面" class="headerlink" title="Go语言层面"></a>Go语言层面</h3><h4 id="插件的使用"><a href="#插件的使用" class="headerlink" title="插件的使用"></a>插件的使用</h4><p><code>go build -buildmode = plugin ...</code></p>
 <blockquote>
 <p>Plguin 需要有自己的 main package<br>编译的时候，使用 go build -buildmode=plugin file.go 来编译<br>使用 plugin.Open(path string) 来打开.so文件，同一插件只能打开一次，重复打开会报错<br>使用 plugin.LookUp(name string) 来获取插件中对外暴露的方法或者类型<br>使用类型断言，断言后执行相应的方法</p>
 </blockquote>
-<p><code>mrsequential.loadPlugin</code>体现了上面的步骤。</p>
-</li>
-</ul>
-<h5 id="本地的顺序执行的MR"><a href="#本地的顺序执行的MR" class="headerlink" title="本地的顺序执行的MR"></a>本地的顺序执行的MR</h5>
+<p><code>mrsequential.loadPlugin</code> 体现了上面的步骤。</p>
+<p>注意 windows/amd64 不支持……</p>
+<h3 id="本地的顺序执行的MR"><a href="#本地的顺序执行的MR" class="headerlink" title="本地的顺序执行的MR"></a>本地的顺序执行的MR</h3><h4 id="逻辑"><a href="#逻辑" class="headerlink" title="逻辑"></a>逻辑</h4><p>非常清晰，遍历所有输入文件，针对每个文件，传入 map 函数，输入是文件名，输出是 kv 的 slice；对于所有的文件的 kv slice 根据 key 进行排序。之后进行遍历，对于连续的相同 key，汇总其 value 得到一个 string slice，传入 reduce 函数，输出为 slice 的长度（string 格式），然后写入文件即可。（以 word-count程序为例）</p>
+
             </article>
             <hr>
             <div>
